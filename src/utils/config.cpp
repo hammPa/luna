@@ -29,6 +29,7 @@ Config load_config(const std::string& path) {
         cfg.system_prompt = j.value("system_prompt", cfg.system_prompt);
         cfg.max_context   = j.value("max_context", cfg.max_context);
         cfg.timeout_sec   = j.value("timeout_sec", cfg.timeout_sec);
+        cfg.memory_db = j.value("memory_db", cfg.memory_db);
 
         int limit = j.value("history_limit", static_cast<int>(cfg.history_limit));
         if (limit < 1) {

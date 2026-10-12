@@ -12,6 +12,7 @@ struct Config {
     std::size_t history_limit = 20;
     int max_context = 4096;  // belum dipakai di Fase 1, disiapkan untuk backend lokal
     long timeout_sec = 30;
+    std::string memory_db = "memory.db";
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

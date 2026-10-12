@@ -7,18 +7,24 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(CURL REQUIRED)
 
+set(SQLITECPP_RUN_CPPLINT OFF CACHE BOOL "" FORCE)
+set(SQLITECPP_RUN_CPPCHECK OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/SQLiteCpp)
+
 add_executable(luna
     src/main.cpp
     src/utils/http.cpp
     src/utils/config.cpp
     src/llm/openai_backend.cpp
     src/llm/backend_factory.cpp
+    src/memory/memory.cpp
 )
 
 target_include_directories(luna PRIVATE
+    ${CMAKE_SOURCE_DIR}/third_party
     ${CMAKE_SOURCE_DIR}/src
 )
-target_link_libraries(luna PRIVATE CURL::libcurl)
+target_link_libraries(luna PRIVATE CURL::libcurl SQLiteCpp)
 
 if(MSVC)
     target_compile_options(luna PRIVATE /W4)

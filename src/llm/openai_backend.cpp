@@ -83,6 +83,7 @@ LLMResponse OpenAIBackend::chat(const std::vector<Message>& history,
     json body = {
         {"model", model_},
         {"messages", std::move(messages)},
+        {"temperature", 0.7},
         {"stream", false},
     };
 
