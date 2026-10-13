@@ -21,6 +21,9 @@ add_executable(luna
     src/memory/memory.cpp
     src/app/commands.cpp
     src/app/chat_session.cpp
+    src/tools/tool_registry.cpp
+    src/tools/permission.cpp
+    src/tools/prompter.cpp
 )
 
 target_include_directories(luna PRIVATE

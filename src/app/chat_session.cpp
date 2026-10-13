@@ -5,7 +5,7 @@
 
 ChatSession::ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory)
     : cfg_(cfg), backend_(backend), memory_(memory) {
-    history_.push_back({"system", cfg_.system_prompt, ""});
+    history_.push_back(make_msg("system", cfg_.system_prompt));
 }
 
 void ChatSession::load() {
@@ -46,7 +46,7 @@ std::string ChatSession::send(const std::string& user_text) {
     // Fakta bisa berubah di tengah sesi, jadi system prompt dibangun ulang.
     history_[0].content = build_system_prompt();
 
-    history_.push_back({"user", user_text, ""});
+    history_.push_back(make_msg("user", user_text));
     trim_history();
 
     LLMResponse r;
@@ -57,12 +57,12 @@ std::string ChatSession::send(const std::string& user_text) {
         throw;                // lempar ulang ke pemanggil
     }
 
-    history_.push_back({"assistant", r.text, ""});
+    history_.push_back(make_msg("assistant", r.text));
 
     // Gagal simpan DB tidak mematikan chat.
     try {
-        memory_.add_message({"user", user_text, ""});
-        memory_.add_message({"assistant", r.text, ""});
+        memory_.add_message(make_msg("user", user_text));
+        memory_.add_message(make_msg("assistant", r.text));
     } catch (const std::exception& e) {
         std::cerr << "Peringatan: gagal menyimpan ke database: " << e.what() << '\n';
     }

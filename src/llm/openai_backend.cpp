@@ -51,6 +51,82 @@ std::string extract_text(const json& content) {
     return {};  // null atau tipe lain
 }
 
+// Format internal {name, description, parameters} -> format OpenAI.
+json to_openai_tools(const json& schema) {
+    json tools = json::array();
+    for (const auto& t : schema) {
+        tools.push_back({
+            {"type", "function"},
+            {"function", {
+                {"name", t.at("name")},
+                {"description", t.at("description")},
+                {"parameters", t.at("parameters")},
+            }},
+        });
+    }
+    return tools;
+}
+
+// Message internal -> JSON OpenAI.
+json to_openai_message(const Message& m) {
+    json item = {{"role", m.role}, {"content", m.content}};
+
+    if (m.role == "tool") {
+        item["tool_call_id"] = m.tool_call_id;
+    } else if (!m.name.empty()) {
+        item["name"] = m.name;
+    }
+
+    if (m.role == "assistant" && !m.tool_calls.empty()) {
+        json calls = json::array();
+        for (const auto& c : m.tool_calls) {
+            calls.push_back({
+                {"id", c.id},
+                {"type", "function"},
+                // OpenAI minta arguments berupa STRING JSON, bukan objek.
+                {"function", {{"name", c.name}, {"arguments", c.arguments.dump()}}},
+            });
+        }
+        item["tool_calls"] = std::move(calls);
+    }
+    return item;
+}
+
+// Balasan OpenAI -> vector<Toolcall>. Tidak pernah melempar karena JSON rusak.
+std::vector<Toolcall> parse_tool_calls(const json& msg) {
+    std::vector<Toolcall> out;
+    if (!msg.contains("tool_calls") || !msg["tool_calls"].is_array()) {
+        return out;  // null atau tidak ada = tidak ada tool call
+    }
+    for (const auto& c : msg["tool_calls"]) {
+        if (!c.is_object() || !c.contains("function")) continue;
+        const json& fn = c["function"];
+
+        Toolcall tc;
+        tc.id = c.value("id", "");
+        tc.name = fn.value("name", "");
+        if (tc.name.empty()) continue;
+
+        tc.arguments = json::object();
+        if (fn.contains("arguments")) {
+            const json& a = fn["arguments"];
+            if (a.is_string()) {
+                try {
+                    json parsed = json::parse(a.get<std::string>());
+                    if (parsed.is_object()) tc.arguments = std::move(parsed);
+                } catch (const json::exception&) {
+                    // Model mengirim JSON rusak. Args tetap kosong;
+                    // tool akan gagal validasi dan model dapat pesan error.
+                }
+            } else if (a.is_object()) {
+                tc.arguments = a;  // sebagian provider mengirim objek langsung
+            }
+        }
+        out.push_back(std::move(tc));
+    }
+    return out;
+}
+
 }  // namespace
 
 OpenAIBackend::OpenAIBackend(std::string base_url,
@@ -69,31 +145,26 @@ OpenAIBackend::OpenAIBackend(std::string base_url,
 }
 
 LLMResponse OpenAIBackend::chat(const std::vector<Message>& history,
-                                const nlohmann::json& /*tools_schema*/) {
-    // 1. Format internal -> format OpenAI
+                                const nlohmann::json& tools_schema) {
     json messages = json::array();
     for (const auto& m : history) {
-        json item = {{"role", m.role}, {"content", m.content}};
-        if (!m.name.empty()) {
-            item["name"] = m.name;
-        }
-        messages.push_back(std::move(item));
+        messages.push_back(to_openai_message(m));
     }
 
     json body = {
         {"model", model_},
         {"messages", std::move(messages)},
-        {"temperature", 0.7},
         {"stream", false},
     };
+    if (tools_schema.is_array() && !tools_schema.empty()) {
+        body["tools"] = to_openai_tools(tools_schema);
+    }
 
-    // 2. Kirim. Jaringan gagal = exception dari HttpClient.
     HttpResponse res = http_.post(url_, headers_, body.dump(), timeout_sec_);
     if (!res.ok()) {
         throw std::runtime_error(describe_http_error(res));
     }
 
-    // 3. Format OpenAI -> format internal
     try {
         json j = json::parse(res.body);
         const json& choices = j.at("choices");
@@ -106,7 +177,7 @@ LLMResponse OpenAIBackend::chat(const std::vector<Message>& history,
         if (msg.contains("content")) {
             out.text = extract_text(msg["content"]);
         }
-        // tool_calls sengaja diabaikan di Fase 1 (nilainya bisa null)
+        out.toolcalls = parse_tool_calls(msg);
         return out;
     } catch (const json::exception& e) {
         throw std::runtime_error(std::string("Balasan tidak sesuai format: ") + e.what());

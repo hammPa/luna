@@ -42,7 +42,12 @@ std::vector<Message> Memory::load_recent(std::size_t limit) {
         std::string role = st.getColumn(0);  // indeks kolom mulai dari 0
         std::string content = st.getColumn(1);
         std::string name = st.getColumn(2);
-        out.push_back({std::move(role), std::move(content), std::move(name)});
+        
+        Message m;
+        m.role = std::move(role);
+        m.content = std::move(content);
+        m.name = std::move(name);
+        out.push_back(std::move(m));
     }
     return out;
 }
