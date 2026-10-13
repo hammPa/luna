@@ -15,9 +15,12 @@ add_executable(luna
     src/main.cpp
     src/utils/http.cpp
     src/utils/config.cpp
+    src/utils/string_utils.cpp
     src/llm/openai_backend.cpp
     src/llm/backend_factory.cpp
     src/memory/memory.cpp
+    src/app/commands.cpp
+    src/app/chat_session.cpp
 )
 
 target_include_directories(luna PRIVATE
