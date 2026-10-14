@@ -4,6 +4,11 @@
 #include "memory/memory.hpp"
 #include "utils/config.hpp"
 
+#include "tools/builtin/get_time.hpp"
+#include "tools/permission.hpp"
+#include "tools/prompter.hpp"
+#include "tools/tool_registry.hpp"
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -16,13 +21,21 @@ int main(int argc, char** argv) {
     Config cfg;
     std::unique_ptr<LLMBackend> backend;
     std::unique_ptr<Memory> memory;
-    std::unique_ptr<ChatSession> session;
+    TerminalPrompter prompter;
+    std::unique_ptr<PermissionGate> gate;
+    std::unique_ptr<ToolRegistry> registry;
+    std::unique_ptr<ChatSession> session;   // paling akhir = dihancurkan paling dulu
 
     try {
         cfg = load_config(config_path);
         backend = create_backend(cfg);
         memory = std::make_unique<Memory>(cfg.memory_db);
-        session = std::make_unique<ChatSession>(cfg, *backend, *memory);
+
+        gate = std::make_unique<PermissionGate>(PermissionPolicy{}, prompter);
+        registry = std::make_unique<ToolRegistry>(*gate);
+        registry->add(std::make_unique<GetTimeTool>());
+
+        session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
         session->load();
     } catch (const std::exception& e) {
         std::cerr << "Gagal start: " << e.what() << '\n';

@@ -3,8 +3,9 @@
 #include <iostream>
 #include <utility>
 
-ChatSession::ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory)
-    : cfg_(cfg), backend_(backend), memory_(memory) {
+ChatSession::ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory,
+                         ToolRegistry& tools)
+    : cfg_(cfg), backend_(backend), memory_(memory), tools_(tools) {
     history_.push_back(make_msg("system", cfg_.system_prompt));
 }
 
@@ -42,30 +43,58 @@ std::string ChatSession::build_system_prompt() {
     return out;
 }
 
-std::string ChatSession::send(const std::string& user_text) {
-    // Fakta bisa berubah di tengah sesi, jadi system prompt dibangun ulang.
-    history_[0].content = build_system_prompt();
-
-    history_.push_back(make_msg("user", user_text));
-    trim_history();
-
-    LLMResponse r;
+void ChatSession::save_turn(const std::string& user, const std::string& reply) {
+    // Hanya user dan jawaban akhir yang disimpan. Pesan perantara tool
+    // hidup di RAM selama giliran ini. Gagal simpan tidak mematikan chat.
     try {
-        r = backend_.chat(history_, nlohmann::json::array());
-    } catch (...) {
-        history_.pop_back();  // rollback pesan user
-        throw;                // lempar ulang ke pemanggil
-    }
-
-    history_.push_back(make_msg("assistant", r.text));
-
-    // Gagal simpan DB tidak mematikan chat.
-    try {
-        memory_.add_message(make_msg("user", user_text));
-        memory_.add_message(make_msg("assistant", r.text));
+        memory_.add_message(make_msg("user", user));
+        memory_.add_message(make_msg("assistant", reply));
     } catch (const std::exception& e) {
         std::cerr << "Peringatan: gagal menyimpan ke database: " << e.what() << '\n';
     }
-
-    return r.text;
 }
+
+std::string ChatSession::send(const std::string& user_text) {
+    history_[0].content = build_system_prompt();
+
+    // Trim hanya di awal giliran. Jangan di tengah loop tool, karena
+    // pesan "tool" tanpa assistant pemintanya akan ditolak API.
+    trim_history();
+
+    const std::size_t start = history_.size();  // titik rollback
+    history_.push_back(make_msg("user", user_text));
+
+    try {
+        for (int round = 0; round < kMaxToolRounds; ++round) {
+            LLMResponse r = backend_.chat(history_, tools_.schema());
+
+            if (!r.wants_toolcall()) {
+                history_.push_back(make_msg("assistant", r.text));
+                save_turn(user_text, r.text);
+                return r.text;
+            }
+
+            // Assistant meminta tool: simpan permintaannya di history.
+            Message a = make_msg("assistant", r.text);
+            a.tool_calls = r.toolcalls;
+            history_.push_back(std::move(a));
+
+            // Jalankan tiap tool (gerbang permission ada di registry).
+            for (const auto& c : r.toolcalls) {
+                Message t = make_msg("tool", tools_.run(c.name, c.arguments));
+                t.tool_call_id = c.id;
+                t.name = c.name;
+                history_.push_back(std::move(t));
+            }
+        }
+    } catch (...) {
+        history_.resize(start);  // buang semua pesan giliran ini
+        throw;
+    }
+
+    // Putaran habis tanpa jawaban akhir.
+    history_.resize(start);
+    throw std::runtime_error("Terlalu banyak langkah tool (maks " +
+                             std::to_string(kMaxToolRounds) + "), dibatalkan.");
+}
+

@@ -2,6 +2,7 @@
 
 #include "llm/llm_backend.hpp"
 #include "memory/memory.hpp"
+#include "tools/tool_registry.hpp"
 #include "utils/config.hpp"
 
 #include <cstddef>
@@ -12,7 +13,8 @@
 // Menyimpan referensi, jadi objek yang dirujuk harus hidup lebih lama.
 class ChatSession {
 public:
-    ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory);
+    ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory,
+                ToolRegistry& tools);
 
     ChatSession(const ChatSession&) = delete;
     ChatSession& operator=(const ChatSession&) = delete;
@@ -28,10 +30,14 @@ public:
 
 private:
     void trim_history();
+    void save_turn(const std::string& user, const std::string& reply);
     std::string build_system_prompt();
+
+    static constexpr int kMaxToolRounds = 5;
 
     const Config& cfg_;
     LLMBackend& backend_;
     Memory& memory_;
+    ToolRegistry& tools_;
     std::vector<Message> history_;  // indeks 0 selalu system prompt
 };
