@@ -17,6 +17,7 @@
 #include "tools/builtin/patch_file.hpp"
 #include "tools/builtin/open_app.hpp"
 #include "tools/builtin/open_url.hpp"
+#include "tools/builtin/close_app.hpp"
 
 #include <iostream>
 #include <memory>
@@ -45,8 +46,12 @@ int main(int argc, char** argv) {
         registry = std::make_unique<ToolRegistry>(*gate);
         registry->add(std::make_unique<GetTimeTool>());
         registry->add(std::make_unique<OpenUrlTool>());
+        
         if (!cfg.apps.empty()) {
             registry->add(std::make_unique<OpenAppTool>(cfg.apps));
+            
+            auto closer = std::make_unique<CloseAppTool>(cfg.apps);
+            if (!closer->empty()) registry->add(std::move(closer));
         }
         
         // Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.

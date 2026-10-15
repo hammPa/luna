@@ -43,7 +43,16 @@ Config load_config(const std::string& path) {
             cfg.permissions = j.at("permissions").get<std::map<std::string, std::string>>();
         }
         if (j.contains("apps")) {
-            cfg.apps = j.at("apps").get<std::map<std::string, std::string>>();
+            for (const auto& [name, v] : j.at("apps").items()) {
+                AppEntry e;
+                if (v.is_string()) {            // format lama tetap diterima
+                    e.run = v.get<std::string>();
+                } else {
+                    e.run = v.value("run", "");
+                    e.process = v.value("process", "");
+                }
+                cfg.apps[name] = std::move(e);
+            }
         }
         
         cfg.history_limit = static_cast<std::size_t>(limit);

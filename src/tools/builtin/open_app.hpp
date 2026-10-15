@@ -3,15 +3,16 @@
 #include "tools/path_guard.hpp"   // arg_string
 #include "tools/process_utils.hpp"
 #include "tools/tool.hpp"
+#include "utils/config.hpp"       // AppEntry
 
 #include <map>
 
 class OpenAppTool : public Tool {
 public:
-    explicit OpenAppTool(std::map<std::string, std::string> apps) : apps_(std::move(apps)) {
-        for (const auto& [k, v] : apps_) {
-            if (v.empty() || v.find(' ') != std::string::npos) {
-                throw std::runtime_error("apps: nilai untuk '" + k +
+    explicit OpenAppTool(std::map<std::string, AppEntry> apps) : apps_(std::move(apps)) {
+        for (const auto& [k, e] : apps_) {
+            if (e.run.empty() || e.run.find(' ') != std::string::npos) {
+                throw std::runtime_error("apps: 'run' untuk '" + k +
                                          "' harus nama program tanpa spasi/argumen.");
             }
         }
@@ -22,7 +23,7 @@ public:
     std::string description() const override {
         std::string d = "Membuka aplikasi dari daftar yang diizinkan. Nama yang tersedia: ";
         bool first = true;
-        for (const auto& [k, v] : apps_) {
+        for (const auto& [k, e] : apps_) {
             d += (first ? "" : ", ") + k;
             first = false;
         }
@@ -31,7 +32,7 @@ public:
 
     nlohmann::json parameters() const override {
         nlohmann::json names = nlohmann::json::array();
-        for (const auto& [k, v] : apps_) names.push_back(k);
+        for (const auto& [k, e] : apps_) names.push_back(k);
         return {{"type", "object"},
                 {"properties", {{"name", {{"type", "string"}, {"enum", names},
                                           {"description", "Nama aplikasi dari daftar"}}}}},
@@ -45,7 +46,8 @@ public:
             std::string n = arg_string(args, "name", "?");
             auto it = apps_.find(n);
             return "Menjalankan aplikasi '" + n + "'" +
-                   (it != apps_.end() ? " (program: " + it->second + ")" : " (tidak ada di daftar)");
+                   (it != apps_.end() ? " (program: " + it->second.run + ")"
+                                      : " (tidak ada di daftar)");
         } catch (const std::exception&) {
             return "Menjalankan aplikasi (argumen tidak valid)";
         }
@@ -57,13 +59,13 @@ public:
         if (it == apps_.end()) {
             throw std::runtime_error("Aplikasi '" + n + "' tidak ada di daftar yang diizinkan.");
         }
-        if (!program_exists(it->second)) {
-            throw std::runtime_error("Program '" + it->second + "' tidak terpasang di sistem.");
+        if (!program_exists(it->second.run)) {
+            throw std::runtime_error("Program '" + it->second.run + "' tidak terpasang di sistem.");
         }
-        spawn_detached({it->second});
+        spawn_detached({it->second.run});
         return "Berhasil menjalankan " + n + ".";
     }
 
 private:
-    std::map<std::string, std::string> apps_;
+    std::map<std::string, AppEntry> apps_;
 };

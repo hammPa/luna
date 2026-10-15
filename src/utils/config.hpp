@@ -5,6 +5,11 @@
 #include <map>
 #include <vector>
 
+struct AppEntry {
+    std::string run;       // program untuk membuka
+    std::string process;   // nama proses untuk menutup (kosong = tidak bisa ditutup)
+};
+
 struct Config {
     std::string backend = "openai";
     std::string model;
@@ -17,7 +22,7 @@ struct Config {
     std::string memory_db = "memory.db";
     std::vector<std::string> allowed_dirs;
     std::map<std::string, std::string> permissions;  // "write" -> "ask"
-    std::map<std::string, std::string> apps;  // nama -> program
+    std::map<std::string, AppEntry> apps;  // nama app -> entry
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

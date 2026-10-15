@@ -69,3 +69,30 @@ inline bool program_exists(const std::string& name) {
     }
     return false;
 }
+
+// Jalankan tanpa shell, tunggu selesai, kembalikan exit code.
+// stdout/stderr dibuang. Lempar exception kalau fork/exec gagal.
+inline int run_and_wait(const std::vector<std::string>& argv) {
+    if (argv.empty() || argv[0].empty()) throw std::runtime_error("Perintah kosong.");
+
+    std::vector<char*> args;
+    for (const auto& a : argv) args.push_back(const_cast<char*>(a.c_str()));
+    args.push_back(nullptr);
+
+    pid_t pid = fork();
+    if (pid < 0) throw std::runtime_error("fork gagal.");
+    if (pid == 0) {
+        int fd = open("/dev/null", O_RDWR);
+        if (fd >= 0) {
+            dup2(fd, STDIN_FILENO);
+            dup2(fd, STDOUT_FILENO);
+            dup2(fd, STDERR_FILENO);
+            if (fd > STDERR_FILENO) close(fd);
+        }
+        execvp(args[0], args.data());
+        _exit(127);
+    }
+    int status = 0;
+    if (waitpid(pid, &status, 0) < 0) throw std::runtime_error("waitpid gagal.");
+    return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
