@@ -1,4 +1,5 @@
 #include "tools/permission.hpp"
+#include <stdexcept>
 
 namespace {
 
@@ -63,4 +64,32 @@ GateResult PermissionGate::check(const Tool& tool, const nlohmann::json& args) {
     }
     return {false, "User menolak menjalankan '" + tool.name() +
                        "'. Jangan coba lagi tanpa diminta; jelaskan atau tawarkan alternatif."};
+}
+
+
+
+PermissionPolicy make_policy(const std::map<std::string, std::string>& cfg) {
+    static const std::map<std::string, Risk> risks = {
+        {"safe", Risk::Safe},         {"write", Risk::Write},
+        {"destructive", Risk::Destructive},
+        {"execute", Risk::Execute},   {"privileged", Risk::Privileged},
+    };
+    static const std::map<std::string, Policy> policies = {
+        {"allow", Policy::Allow}, {"ask", Policy::Ask}, {"deny", Policy::Deny},
+    };
+
+    PermissionPolicy p;  // mulai dari default ketat
+    for (const auto& [k, v] : cfg) {
+        auto r = risks.find(k);
+        if (r == risks.end()) {
+            throw std::runtime_error("permissions: tingkat risiko tidak dikenal: '" + k + "'");
+        }
+        auto po = policies.find(v);
+        if (po == policies.end()) {
+            throw std::runtime_error("permissions: nilai tidak valid untuk '" + k +
+                                     "': '" + v + "' (pakai allow/ask/deny)");
+        }
+        p.by_risk[r->second] = po->second;
+    }
+    return p;
 }

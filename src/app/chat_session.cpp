@@ -28,17 +28,23 @@ void ChatSession::trim_history() {
 }
 
 std::string ChatSession::build_system_prompt() {
+    std::string out = cfg_.system_prompt;
+
+    if (!tools_.empty()) {
+        out += "\n\nTool yang tersedia:\n" + tools_.describe_all();
+    }
+
     std::vector<std::pair<std::string, std::string>> facts;
     try {
         facts = memory_.all_facts();
     } catch (const std::exception& e) {
         std::cerr << "Peringatan: gagal membaca fakta: " << e.what() << '\n';
     }
-    if (facts.empty()) return cfg_.system_prompt;
-
-    std::string out = cfg_.system_prompt + "\n\nFakta tentang pengguna:\n";
-    for (const auto& [k, v] : facts) {
-        out += "- " + k + ": " + v + "\n";
+    if (!facts.empty()) {
+        out += "\n\nFakta tentang pengguna:\n";
+        for (const auto& [k, v] : facts) {
+            out += "- " + k + ": " + v + "\n";
+        }
     }
     return out;
 }

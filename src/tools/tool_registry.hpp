@@ -24,6 +24,9 @@ public:
 
     bool empty() const { return tools_.empty(); }
 
+    // Ringkasan "- nama: deskripsi" per tool, untuk system prompt.
+    std::string describe_all() const;
+    
 private:
     PermissionGate& gate_;
     std::map<std::string, std::unique_ptr<Tool>> tools_;

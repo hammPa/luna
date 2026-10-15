@@ -45,3 +45,11 @@ std::string ToolRegistry::run(const std::string& name, const nlohmann::json& arg
         return std::string("Error saat menjalankan ") + name + ": " + e.what();
     }
 }
+
+std::string ToolRegistry::describe_all() const {
+    std::string out;
+    for (const auto& [name, tool] : tools_) {
+        out += "- " + name + ": " + tool->description() + "\n";
+    }
+    return out;
+}

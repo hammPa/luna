@@ -31,9 +31,12 @@ public:
 
     // Putuskan apakah pemanggilan ini boleh jalan.
     GateResult check(const Tool& tool, const nlohmann::json& args);
-
+    
+    // Lempar runtime_error kalau ada kunci atau nilai tidak dikenal.
 private:
     PermissionPolicy policy_;
     Prompter& prompter_;
     std::set<std::string> always_;  // nama tool yang di-"always" untuk sesi ini (RAM saja)
 };
+
+PermissionPolicy make_policy(const std::map<std::string, std::string>& cfg);

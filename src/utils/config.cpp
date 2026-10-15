@@ -35,6 +35,14 @@ Config load_config(const std::string& path) {
         if (limit < 1) {
             throw std::runtime_error("history_limit harus >= 1");
         }
+        
+        if (j.contains("allowed_dirs")) {
+            cfg.allowed_dirs = j.at("allowed_dirs").get<std::vector<std::string>>();
+        }
+        if (j.contains("permissions")) {
+            cfg.permissions = j.at("permissions").get<std::map<std::string, std::string>>();
+        }
+        
         cfg.history_limit = static_cast<std::size_t>(limit);
     } catch (const json::exception& e) {
         // misalnya "model" berisi angka, bukan string

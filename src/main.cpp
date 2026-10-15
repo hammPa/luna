@@ -4,10 +4,14 @@
 #include "memory/memory.hpp"
 #include "utils/config.hpp"
 
-#include "tools/builtin/get_time.hpp"
 #include "tools/permission.hpp"
 #include "tools/prompter.hpp"
 #include "tools/tool_registry.hpp"
+#include "tools/path_guard.hpp"
+
+#include "tools/builtin/get_time.hpp"
+#include "tools/builtin/read_file.hpp"
+#include "tools/builtin/list_dir.hpp"
 
 #include <iostream>
 #include <memory>
@@ -22,6 +26,7 @@ int main(int argc, char** argv) {
     std::unique_ptr<LLMBackend> backend;
     std::unique_ptr<Memory> memory;
     TerminalPrompter prompter;
+    std::unique_ptr<PathGuard> guard;
     std::unique_ptr<PermissionGate> gate;
     std::unique_ptr<ToolRegistry> registry;
     std::unique_ptr<ChatSession> session;   // paling akhir = dihancurkan paling dulu
@@ -31,12 +36,22 @@ int main(int argc, char** argv) {
         backend = create_backend(cfg);
         memory = std::make_unique<Memory>(cfg.memory_db);
 
-        gate = std::make_unique<PermissionGate>(PermissionPolicy{}, prompter);
+        gate = std::make_unique<PermissionGate>(make_policy(cfg.permissions), prompter);
         registry = std::make_unique<ToolRegistry>(*gate);
         registry->add(std::make_unique<GetTimeTool>());
+        
+        // Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.
+        if (!cfg.allowed_dirs.empty()) {
+            guard = std::make_unique<PathGuard>(cfg.allowed_dirs);
+            registry->add(std::make_unique<ListDirTool>(*guard));
+            registry->add(std::make_unique<ReadFileTool>(*guard));
+        }
 
         session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
         session->load();
+
+        std::cerr << "allowed_dirs=" << cfg.allowed_dirs.size()
+          << " tools=" << registry->schema().size() << '\n';
     } catch (const std::exception& e) {
         std::cerr << "Gagal start: " << e.what() << '\n';
         return 1;

@@ -24,6 +24,7 @@ add_executable(luna
     src/tools/tool_registry.cpp
     src/tools/permission.cpp
     src/tools/prompter.cpp
+    src/tools/path_guard.cpp
 )
 
 target_include_directories(luna PRIVATE
