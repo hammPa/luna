@@ -42,6 +42,9 @@ Config load_config(const std::string& path) {
         if (j.contains("permissions")) {
             cfg.permissions = j.at("permissions").get<std::map<std::string, std::string>>();
         }
+        if (j.contains("apps")) {
+            cfg.apps = j.at("apps").get<std::map<std::string, std::string>>();
+        }
         
         cfg.history_limit = static_cast<std::size_t>(limit);
     } catch (const json::exception& e) {

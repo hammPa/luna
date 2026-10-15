@@ -12,6 +12,11 @@
 #include "tools/builtin/get_time.hpp"
 #include "tools/builtin/read_file.hpp"
 #include "tools/builtin/list_dir.hpp"
+#include "tools/builtin/create_file.hpp"
+#include "tools/builtin/write_file.hpp"
+#include "tools/builtin/patch_file.hpp"
+#include "tools/builtin/open_app.hpp"
+#include "tools/builtin/open_url.hpp"
 
 #include <iostream>
 #include <memory>
@@ -39,12 +44,20 @@ int main(int argc, char** argv) {
         gate = std::make_unique<PermissionGate>(make_policy(cfg.permissions), prompter);
         registry = std::make_unique<ToolRegistry>(*gate);
         registry->add(std::make_unique<GetTimeTool>());
+        registry->add(std::make_unique<OpenUrlTool>());
+        if (!cfg.apps.empty()) {
+            registry->add(std::make_unique<OpenAppTool>(cfg.apps));
+        }
         
         // Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.
         if (!cfg.allowed_dirs.empty()) {
             guard = std::make_unique<PathGuard>(cfg.allowed_dirs);
             registry->add(std::make_unique<ListDirTool>(*guard));
             registry->add(std::make_unique<ReadFileTool>(*guard));
+        
+            registry->add(std::make_unique<CreateFileTool>(*guard));
+            registry->add(std::make_unique<PatchFileTool>(*guard));
+            registry->add(std::make_unique<WriteFileTool>(*guard));
         }
 
         session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);

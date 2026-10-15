@@ -17,6 +17,7 @@ struct Config {
     std::string memory_db = "memory.db";
     std::vector<std::string> allowed_dirs;
     std::map<std::string, std::string> permissions;  // "write" -> "ask"
+    std::map<std::string, std::string> apps;  // nama -> program
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.
