@@ -19,19 +19,28 @@
 #include "tools/builtin/open_url.hpp"
 #include "tools/builtin/close_app.hpp"
 
+#include "app/telegram_loop.hpp"
+#include <cstring>
+
 #include <iostream>
 #include <memory>
 #include <string>
 
 int main(int argc, char** argv) {
     const std::string config_path = (argc > 1) ? argv[1] : "config.json";
+    const bool telegram_mode = (argc > 2 && std::strcmp(argv[2], "--telegram") == 0);
 
     // Urutan deklarasi penting: yang dirujuk ChatSession harus
     // dideklarasikan lebih dulu (dihancurkan belakangan).
     Config cfg;
     std::unique_ptr<LLMBackend> backend;
     std::unique_ptr<Memory> memory;
-    TerminalPrompter prompter;
+
+    TerminalPrompter terminal_prompter;
+    DenyPrompter deny_prompter;
+    Prompter& prompter = telegram_mode ? static_cast<Prompter&>(deny_prompter)
+                                    : static_cast<Prompter&>(terminal_prompter);
+
     std::unique_ptr<PathGuard> guard;
     std::unique_ptr<PermissionGate> gate;
     std::unique_ptr<ToolRegistry> registry;
@@ -73,6 +82,16 @@ int main(int argc, char** argv) {
     } catch (const std::exception& e) {
         std::cerr << "Gagal start: " << e.what() << '\n';
         return 1;
+    }
+
+    if (telegram_mode) {
+        try {
+            run_telegram(cfg, *session, *memory);
+        } catch (const std::exception& e) {
+            std::cerr << "Gagal: " << e.what() << '\n';
+            return 1;
+        }
+        return 0;
     }
 
     std::cout << "Backend: " << backend->name() << " | Model: " << cfg.model

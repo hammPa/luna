@@ -54,6 +54,11 @@ Config load_config(const std::string& path) {
                 cfg.apps[name] = std::move(e);
             }
         }
+
+        cfg.telegram_token_env = j.value("telegram_token_env", cfg.telegram_token_env);
+        if (j.contains("telegram_allowed_users")) {
+            cfg.telegram_allowed_users = j.at("telegram_allowed_users").get<std::vector<long long>>();
+        }
         
         cfg.history_limit = static_cast<std::size_t>(limit);
     } catch (const json::exception& e) {

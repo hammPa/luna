@@ -53,5 +53,10 @@ bool handle_command(const std::string& line, Memory& memory, std::ostream& out) 
         cmd_facts(memory, out);
         return true;
     }
+    if (line == "/start" || line == "/help") {
+        out << "Halo, saya Luna. Kirim pesan biasa untuk ngobrol atau menjalankan tool.\n"
+            "Perintah: /remember kunci=nilai, /facts\n";
+        return true;
+    }
     return false;
 }

@@ -19,3 +19,9 @@ class TerminalPrompter : public Prompter {
 public:
     Decision ask(const std::string& question, bool can_always) override;
 };
+
+// Selalu menolak. Dipakai saat tidak ada manusia di terminal.
+class DenyPrompter : public Prompter {
+public:
+    Decision ask(const std::string&, bool) override { return Decision::Deny; }
+};
