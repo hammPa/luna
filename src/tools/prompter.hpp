@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tools/tool.hpp"
+
 #include <string>
 
 enum class Decision { AllowOnce, AllowAlways, Deny };
@@ -11,17 +13,18 @@ public:
     virtual ~Prompter() = default;
 
     // `can_always` = false berarti opsi "always" tidak ditawarkan.
-    virtual Decision ask(const std::string& question, bool can_always) = 0;
+    // `risk` memberi tahu prompter seberapa berbahaya aksinya.
+    virtual Decision ask(const std::string& question, bool can_always, Risk risk) = 0;
 };
 
 // Bertanya lewat terminal (stdin/stdout).
 class TerminalPrompter : public Prompter {
 public:
-    Decision ask(const std::string& question, bool can_always) override;
+    Decision ask(const std::string& question, bool can_always, Risk risk) override;
 };
 
 // Selalu menolak. Dipakai saat tidak ada manusia di terminal.
 class DenyPrompter : public Prompter {
 public:
-    Decision ask(const std::string&, bool) override { return Decision::Deny; }
+    Decision ask(const std::string&, bool, Risk) override { return Decision::Deny; }
 };

@@ -27,6 +27,7 @@ add_executable(luna
     src/tools/path_guard.cpp
     src/telegram/telegram_client.cpp
     src/app/telegram_loop.cpp
+    src/telegram/telegram_prompter.cpp
 )
 
 target_include_directories(luna PRIVATE

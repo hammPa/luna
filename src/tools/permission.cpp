@@ -52,7 +52,7 @@ GateResult PermissionGate::check(const Tool& tool, const nlohmann::json& args) {
                            "\n  Tool : " + tool.name() +
                            "\n  Aksi : " + tool.describe(args);
 
-    Decision d = prompter_.ask(question, can_always);
+    Decision d = prompter_.ask(question, can_always, risk);
     switch (d) {
         case Decision::AllowAlways:
             if (can_always) always_.insert(tool.name());

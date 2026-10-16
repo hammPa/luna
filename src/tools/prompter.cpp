@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-Decision TerminalPrompter::ask(const std::string& question, bool can_always) {
+Decision TerminalPrompter::ask(const std::string& question, bool can_always, Risk /*risk*/) {
     std::cout << question << '\n';
 
     while (true) {

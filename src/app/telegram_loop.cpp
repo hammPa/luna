@@ -25,7 +25,8 @@ bool is_allowed(const Config& cfg, long long user_id) {
 
 }  // namespace
 
-void run_telegram(const Config& cfg, ChatSession& session, Memory& memory) {
+void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
+                  TelegramPrompter& prompter) {
     // Fail closed: tanpa allowlist, mode ini tidak boleh jalan.
     if (cfg.telegram_allowed_users.empty()) {
         throw std::runtime_error(
@@ -40,6 +41,9 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory) {
 
     TelegramClient tg(token);
     long long offset = 0;
+
+    // Prompter memakai client dan offset yang sama dengan loop ini.
+    prompter.bind(&tg, &offset);
 
     // Buang pesan yang menumpuk saat Luna mati, supaya tidak dieksekusi mendadak.
     try {
@@ -97,7 +101,15 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory) {
                     if (handled) reply = out.str();
                 }
                 if (!handled) {
-                    reply = session.send(u.text);
+                    // Izinkan prompter tahu siapa yang sedang dilayani.
+                    prompter.set_context(u.chat_id, u.user_id);
+                    try {
+                        reply = session.send(u.text);
+                    } catch (...) {
+                        prompter.clear_context();
+                        throw;  // ditangkap catch di bawah, jadi "Error: ..."
+                    }
+                    prompter.clear_context();
                 }
             } catch (const std::exception& e) {
                 reply = std::string("Error: ") + e.what();

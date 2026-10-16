@@ -21,6 +21,7 @@
 
 #include "app/telegram_loop.hpp"
 #include <cstring>
+#include "telegram/telegram_prompter.hpp"
 
 #include <iostream>
 #include <memory>
@@ -35,11 +36,10 @@ int main(int argc, char** argv) {
     Config cfg;
     std::unique_ptr<LLMBackend> backend;
     std::unique_ptr<Memory> memory;
-
+    TelegramPrompter telegram_prompter;
     TerminalPrompter terminal_prompter;
-    DenyPrompter deny_prompter;
-    Prompter& prompter = telegram_mode ? static_cast<Prompter&>(deny_prompter)
-                                    : static_cast<Prompter&>(terminal_prompter);
+    Prompter& prompter = telegram_mode ? static_cast<Prompter&>(telegram_prompter)
+                                   : static_cast<Prompter&>(terminal_prompter);
 
     std::unique_ptr<PathGuard> guard;
     std::unique_ptr<PermissionGate> gate;
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
 
     if (telegram_mode) {
         try {
-            run_telegram(cfg, *session, *memory);
+            run_telegram(cfg, *session, *memory, telegram_prompter);
         } catch (const std::exception& e) {
             std::cerr << "Gagal: " << e.what() << '\n';
             return 1;
