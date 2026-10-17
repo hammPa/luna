@@ -1,119 +1,66 @@
-#include "app/chat_session.hpp"
-#include "app/commands.hpp"
-#include "llm/backend_factory.hpp"
-#include "memory/memory.hpp"
-#include "utils/config.hpp"
+#include "auth/totp.hpp"
 
-#include "tools/permission.hpp"
-#include "tools/prompter.hpp"
-#include "tools/tool_registry.hpp"
-#include "tools/path_guard.hpp"
-
-#include "tools/builtin/get_time.hpp"
-#include "tools/builtin/read_file.hpp"
-#include "tools/builtin/list_dir.hpp"
-#include "tools/builtin/create_file.hpp"
-#include "tools/builtin/write_file.hpp"
-#include "tools/builtin/patch_file.hpp"
-#include "tools/builtin/open_app.hpp"
-#include "tools/builtin/open_url.hpp"
-#include "tools/builtin/close_app.hpp"
-
-#include "app/telegram_loop.hpp"
-#include <cstring>
-#include "telegram/telegram_prompter.hpp"
-
+#include <cstdlib>
 #include <iostream>
-#include <memory>
-#include <string>
 
-int main(int argc, char** argv) {
-    const std::string config_path = (argc > 1) ? argv[1] : "config.json";
-    const bool telegram_mode = (argc > 2 && std::strcmp(argv[2], "--telegram") == 0);
-
-    // Urutan deklarasi penting: yang dirujuk ChatSession harus
-    // dideklarasikan lebih dulu (dihancurkan belakangan).
-    Config cfg;
-    std::unique_ptr<LLMBackend> backend;
-    std::unique_ptr<Memory> memory;
-    TelegramPrompter telegram_prompter;
-    TerminalPrompter terminal_prompter;
-    Prompter& prompter = telegram_mode ? static_cast<Prompter&>(telegram_prompter)
-                                   : static_cast<Prompter&>(terminal_prompter);
-
-    std::unique_ptr<PathGuard> guard;
-    std::unique_ptr<PermissionGate> gate;
-    std::unique_ptr<ToolRegistry> registry;
-    std::unique_ptr<ChatSession> session;   // paling akhir = dihancurkan paling dulu
-
-    try {
-        cfg = load_config(config_path);
-        backend = create_backend(cfg);
-        memory = std::make_unique<Memory>(cfg.memory_db);
-
-        gate = std::make_unique<PermissionGate>(make_policy(cfg.permissions), prompter);
-        registry = std::make_unique<ToolRegistry>(*gate);
-        registry->add(std::make_unique<GetTimeTool>());
-        registry->add(std::make_unique<OpenUrlTool>());
-        
-        if (!cfg.apps.empty()) {
-            registry->add(std::make_unique<OpenAppTool>(cfg.apps));
-            
-            auto closer = std::make_unique<CloseAppTool>(cfg.apps);
-            if (!closer->empty()) registry->add(std::move(closer));
-        }
-        
-        // Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.
-        if (!cfg.allowed_dirs.empty()) {
-            guard = std::make_unique<PathGuard>(cfg.allowed_dirs);
-            registry->add(std::make_unique<ListDirTool>(*guard));
-            registry->add(std::make_unique<ReadFileTool>(*guard));
-        
-            registry->add(std::make_unique<CreateFileTool>(*guard));
-            registry->add(std::make_unique<PatchFileTool>(*guard));
-            registry->add(std::make_unique<WriteFileTool>(*guard));
-        }
-
-        session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
-        session->load();
-
-        std::cerr << "allowed_dirs=" << cfg.allowed_dirs.size()
-          << " tools=" << registry->schema().size() << '\n';
-    } catch (const std::exception& e) {
-        std::cerr << "Gagal start: " << e.what() << '\n';
-        return 1;
+static std::string code_for(long long step) { return std::to_string(100000 + step % 900000); }
+static TotpCodeFn fake() {
+    return [](std::time_t t) { return code_for(static_cast<long long>(t) / 30); };
+}
+static const char* name(TotpResult r) {
+    switch (r) {
+        case TotpResult::Ok: return "Ok";
+        case TotpResult::Wrong: return "Wrong";
+        case TotpResult::Reused: return "Reused";
+        case TotpResult::Locked: return "Locked";
+        case TotpResult::Error: return "Error";
     }
+    return "?";
+}
+static void expect(const char* label, TotpResult got, TotpResult want) {
+    std::cout << (got == want ? "OK    " : "GAGAL ") << label << " -> " << name(got)
+              << " (harus " << name(want) << ")\n";
+}
 
-    if (telegram_mode) {
-        try {
-            run_telegram(cfg, *session, *memory, telegram_prompter);
-        } catch (const std::exception& e) {
-            std::cerr << "Gagal: " << e.what() << '\n';
-            return 1;
-        }
-        return 0;
+int main() {
+    const std::time_t now = 1000000020;  // kelipatan 30
+    const long long s = now / 30;
+
+    { TotpVerifier v(fake());
+      expect("A1 kode sekarang", v.verify(code_for(s), now), TotpResult::Ok);
+      expect("A2 dipakai ulang", v.verify(code_for(s), now), TotpResult::Reused); }
+
+    { TotpVerifier v(fake());
+      expect("B1 langkah depan", v.verify(code_for(s + 1), now), TotpResult::Ok);
+      expect("B2 langkah lama sesudahnya", v.verify(code_for(s), now), TotpResult::Reused); }
+
+    { TotpVerifier v(fake());
+      expect("C langkah belakang (-1)", v.verify(code_for(s - 1), now), TotpResult::Ok); }
+
+    { TotpVerifier v(fake());
+      expect("D kedaluwarsa (-2)", v.verify(code_for(s - 2), now), TotpResult::Wrong); }
+
+    { TotpVerifier v(fake());
+      expect("E1 bukan angka", v.verify("abc", now), TotpResult::Wrong);
+      expect("E2 5 digit", v.verify("12345", now), TotpResult::Wrong);
+      expect("E3 salah", v.verify("000000", now), TotpResult::Wrong);
+      expect("E4 benar tapi terkunci", v.verify(code_for(s), now), TotpResult::Locked); }
+
+    { TotpVerifier v(fake());
+      v.verify("000000", now); v.verify("000000", now);
+      expect("G1 sukses mereset hitungan", v.verify(code_for(s), now), TotpResult::Ok);
+      v.verify("000000", now + 30); v.verify("000000", now + 30);
+      expect("G2 belum terkunci", v.verify(code_for(s + 1), now + 30), TotpResult::Ok); }
+
+    { TotpVerifier v([](std::time_t) -> std::string { throw std::runtime_error("x"); });
+      expect("H error sistem", v.verify("123456", now), TotpResult::Error); }
+
+    if (const char* sec = std::getenv("LUNA_TOTP_SECRET")) {
+        TotpVerifier v(make_oathtool_generator(sec));
+        std::cout << "\nKetik kode dari app authenticator: ";
+        std::string c;
+        std::getline(std::cin, c);
+        std::cout << "oathtool asli -> " << name(v.verify(c)) << " (harus Ok)\n";
+        std::cout << "kode yang sama lagi -> " << name(v.verify(c)) << " (harus Reused)\n";
     }
-
-    std::cout << "Backend: " << backend->name() << " | Model: " << cfg.model
-              << " | Riwayat dimuat: " << session->history_size() << " pesan"
-              << "\nPerintah: /remember kunci=nilai, /facts, exit\n";
-
-    std::string line;
-    while (true) {
-        std::cout << "> " << std::flush;
-        if (!std::getline(std::cin, line)) break;
-        if (line == "exit" || line == "quit") break;
-        if (line.empty()) continue;
-
-        if (line[0] == '/' && handle_command(line, *memory, std::cout)) continue;
-
-        try {
-            std::cout << session->send(line) << "\n\n";
-        } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << '\n';
-        }
-    }
-
-    std::cout << "Sampai jumpa.\n";
-    return 0;
 }
