@@ -15,9 +15,11 @@
 #include "tools/builtin/create_file.hpp"
 #include "tools/builtin/write_file.hpp"
 #include "tools/builtin/patch_file.hpp"
+#include "tools/builtin/delete_file.hpp"
 #include "tools/builtin/open_app.hpp"
 #include "tools/builtin/open_url.hpp"
 #include "tools/builtin/close_app.hpp"
+#include "tools/builtin/switch_workspace.hpp"
 
 #include "telegram/telegram_loop.hpp"
 #include <cstring>
@@ -56,6 +58,10 @@ int main(int argc, char** argv) {
         registry->add(std::make_unique<GetTimeTool>());
         registry->add(std::make_unique<OpenUrlTool>());
         
+        if (SwitchWorkspaceTool::available()) {
+            registry->add(std::make_unique<SwitchWorkspaceTool>());
+        }
+
         if (!cfg.apps.empty()) {
             registry->add(std::make_unique<OpenAppTool>(cfg.apps));
             
@@ -72,6 +78,7 @@ int main(int argc, char** argv) {
             registry->add(std::make_unique<CreateFileTool>(*guard));
             registry->add(std::make_unique<PatchFileTool>(*guard));
             registry->add(std::make_unique<WriteFileTool>(*guard));
+            registry->add(std::make_unique<DeleteFileTool>(*guard));
         }
 
         session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
