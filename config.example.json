@@ -1,0 +1,30 @@
+{
+    "backend": "openai",
+    "model": "mistral/ministral-3b-latest",
+    "base_url": "https://api.mistral.ai/v1",
+    "api_key_env": "MISTRAL_API_KEY",
+    "system_prompt": "Kamu Luna, asisten pribadi yang ramah dan to the point.",
+    "history_limit": 20,
+    "max_context": 4096,
+    "timeout_sec": 30,
+    "memory_db": "memory.db",
+
+    "allowed_dirs": ["/home/USER/luna-workspace"],
+
+    "permissions": {
+        "safe": "allow",
+        "write": "ask",
+        "destructive": "ask",
+        "execute": "ask",
+        "privileged": "ask"
+    },
+
+    "apps": {
+        "browser":  {"run": "firefox", "process": "firefox"},
+        "terminal": {"run": "gnome-terminal"},
+        "files":    {"run": "nautilus", "process": "nautilus"}
+    },
+
+    "telegram_allowed_users": [123456789],
+    "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN"
+}

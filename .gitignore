@@ -1,4 +1,18 @@
-build
+# build
+build/
+compile_commands.json
+.cache/
+
+# data dan rahasia
+config.json
 .env
-dist
-third_party
+*.db
+*.db-journal
+*.db-wal
+
+# sementara
+*.bak
+*.luna-tmp
+test.db
+
+third_party/
