@@ -1,6 +1,6 @@
 #include "auth/totp.hpp"
 
-#include "tools/process_utils.hpp"
+#include "utils/process_utils.hpp"
 #include "utils/string_utils.hpp"
 
 #include <cctype>

@@ -26,7 +26,7 @@ add_executable(luna
     src/tools/prompter.cpp
     src/tools/path_guard.cpp
     src/telegram/telegram_client.cpp
-    src/app/telegram_loop.cpp
+    src/telegram/telegram_loop.cpp
     src/telegram/telegram_prompter.cpp
     src/auth/totp.cpp
 )

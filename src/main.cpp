@@ -19,7 +19,7 @@
 #include "tools/builtin/open_url.hpp"
 #include "tools/builtin/close_app.hpp"
 
-#include "app/telegram_loop.hpp"
+#include "telegram/telegram_loop.hpp"
 #include <cstring>
 #include "telegram/telegram_prompter.hpp"
 

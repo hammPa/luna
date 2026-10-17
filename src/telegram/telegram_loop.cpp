@@ -1,4 +1,4 @@
-#include "app/telegram_loop.hpp"
+#include "telegram/telegram_loop.hpp"
 
 #include "app/commands.hpp"
 #include "telegram/telegram_client.hpp"
