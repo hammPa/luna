@@ -44,7 +44,7 @@ Sistem: **Linux** (memakai `fork`, `execvp`, `xdg-open`, `pkill`, `localtime_r`)
 ## Build
 
 ```bash
-git clone <repo-kamu> luna
+git clone https://github.com/hammPa/luna
 cd luna
 
 # dependensi di third_party
