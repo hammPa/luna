@@ -2,6 +2,7 @@
 
 #include "telegram/telegram_client.hpp"
 #include "tools/prompter.hpp"
+#include "auth/totp.hpp"
 
 #include <chrono>
 #include <deque>
@@ -19,6 +20,9 @@ public:
 
     Decision ask(const std::string& question, bool can_always, Risk risk) override;
 
+    // Opsional. Tanpa verifier, Destructive/Privileged ditolak dari Telegram.
+    void set_verifier(TotpVerifier* v) { verifier_ = v; }
+
 private:
     bool rate_limited();
 
@@ -31,4 +35,9 @@ private:
     long long chat_id_ = 0;
     long long user_id_ = 0;
     std::deque<std::chrono::steady_clock::time_point> history_;
+
+    Decision ask_totp(const std::string& question);
+
+    TotpVerifier* verifier_ = nullptr;
+    static constexpr int kMaxAttempts = 3;
 };

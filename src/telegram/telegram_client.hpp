@@ -10,6 +10,7 @@ struct TelegramUpdate {
     long long update_id = 0;
     long long user_id = 0;
     long long chat_id = 0;
+    long long message_id = 0;
     std::string text;
 };
 
@@ -30,6 +31,8 @@ public:
     // Buang semua update yang menumpuk, supaya pesan lama tidak dieksekusi.
     void skip_backlog(long long& next_offset);
 
+    // Hapus pesan. Gagal (mis. sudah terlalu lama) tidak fatal.
+    void delete_message(long long chat_id, long long message_id);
 private:
     nlohmann::json call(const std::string& method, const nlohmann::json& body, long http_timeout);
 

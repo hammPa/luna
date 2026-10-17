@@ -50,6 +50,7 @@ std::vector<TelegramUpdate> TelegramClient::get_updates(long long& next_offset,
         t.update_id = id;
         t.user_id = m["from"].value("id", 0LL);
         t.chat_id = m["chat"].value("id", 0LL);
+        t.message_id = m.value("message_id", 0LL);
         t.text = m["text"].get<std::string>();
         out.push_back(std::move(t));
     }
@@ -95,4 +96,9 @@ void TelegramClient::skip_backlog(long long& next_offset) {
             next_offset = std::max(next_offset, u["update_id"].get<long long>() + 1);
         }
     }
+}
+
+
+void TelegramClient::delete_message(long long chat_id, long long message_id) {
+    call("deleteMessage", {{"chat_id", chat_id}, {"message_id", message_id}}, 10);
 }

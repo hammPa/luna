@@ -13,6 +13,9 @@
 #include <string>
 #include <vector>
 
+#include "auth/totp.hpp"
+#include <memory>
+
 namespace {
 
 constexpr std::size_t kMaxInputChars = 2000;
@@ -44,6 +47,15 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
 
     // Prompter memakai client dan offset yang sama dengan loop ini.
     prompter.bind(&tg, &offset);
+
+    std::unique_ptr<TotpVerifier> verifier;
+    if (const char* secret = std::getenv("LUNA_TOTP_SECRET"); secret != nullptr && *secret != '\0') {
+        verifier = std::make_unique<TotpVerifier>(make_oathtool_generator(secret));
+        prompter.set_verifier(verifier.get());
+        std::cout << "TOTP aktif: aksi berbahaya bisa disetujui dengan kode authenticator.\n";
+    } else {
+        std::cout << "TOTP tidak aktif: aksi Destructive/Privileged ditolak dari Telegram.\n";
+    }
 
     // Buang pesan yang menumpuk saat Luna mati, supaya tidak dieksekusi mendadak.
     try {
