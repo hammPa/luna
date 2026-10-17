@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <csignal>
 
 // Jalankan program TANPA shell dan tanpa menunggu.
 // argv[0] = nama program (dicari di PATH oleh execvp).
@@ -95,4 +96,81 @@ inline int run_and_wait(const std::vector<std::string>& argv) {
     int status = 0;
     if (waitpid(pid, &status, 0) < 0) throw std::runtime_error("waitpid gagal.");
     return WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+}
+
+
+struct CaptureResult {
+    int exit_code = -1;
+    std::string out;
+};
+
+// Jalankan tanpa shell. stdin_data ditulis ke stdin program, stdout ditangkap.
+// Hanya untuk data kecil (stdin_data dan output dibatasi).
+inline CaptureResult run_capture(const std::vector<std::string>& argv,
+                                 const std::string& stdin_data = "",
+                                 std::size_t max_out = 64 * 1024) {
+    if (argv.empty() || argv[0].empty()) throw std::runtime_error("Perintah kosong.");
+    if (stdin_data.size() > 64 * 1024) throw std::runtime_error("Input terlalu besar.");
+
+    std::vector<char*> args;
+    for (const auto& a : argv) args.push_back(const_cast<char*>(a.c_str()));
+    args.push_back(nullptr);
+
+    int in_pipe[2];   // Luna menulis [1], anak membaca [0]
+    int out_pipe[2];  // anak menulis [1], Luna membaca [0]
+    if (pipe(in_pipe) != 0) throw std::runtime_error("pipe gagal.");
+    if (pipe(out_pipe) != 0) {
+        close(in_pipe[0]); close(in_pipe[1]);
+        throw std::runtime_error("pipe gagal.");
+    }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        close(in_pipe[0]); close(in_pipe[1]);
+        close(out_pipe[0]); close(out_pipe[1]);
+        throw std::runtime_error("fork gagal.");
+    }
+
+    if (pid == 0) {
+        dup2(in_pipe[0], STDIN_FILENO);
+        dup2(out_pipe[1], STDOUT_FILENO);
+        int fd = open("/dev/null", O_WRONLY);
+        if (fd >= 0) { dup2(fd, STDERR_FILENO); close(fd); }
+        close(in_pipe[0]); close(in_pipe[1]);
+        close(out_pipe[0]); close(out_pipe[1]);
+        execvp(args[0], args.data());
+        _exit(127);
+    }
+
+    // Induk: tutup ujung yang bukan miliknya.
+    close(in_pipe[0]);
+    close(out_pipe[1]);
+
+    // Cegah SIGPIPE membunuh Luna kalau anak keluar lebih dulu.
+    auto old_handler = std::signal(SIGPIPE, SIG_IGN);
+
+    std::size_t written = 0;
+    while (written < stdin_data.size()) {
+        ssize_t n = write(in_pipe[1], stdin_data.data() + written, stdin_data.size() - written);
+        if (n < 0) break;  // anak sudah menutup stdin; lanjut baca outputnya
+        written += static_cast<std::size_t>(n);
+    }
+    close(in_pipe[1]);  // EOF untuk anak
+
+    CaptureResult res;
+    char buf[1024];
+    while (true) {
+        ssize_t n = read(out_pipe[0], buf, sizeof(buf));
+        if (n <= 0) break;
+        if (res.out.size() + static_cast<std::size_t>(n) > max_out) break;
+        res.out.append(buf, static_cast<std::size_t>(n));
+    }
+    close(out_pipe[0]);
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+    std::signal(SIGPIPE, old_handler);
+
+    res.exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    return res;
 }
