@@ -28,7 +28,10 @@ public:
 
     std::size_t history_size() const { return history_.size() - 1; }  // tanpa system
 
-private:
+    // Hapus riwayat di RAM dan database. Fakta tidak disentuh.
+    void clear();
+
+    private:
     void trim_history();
     void save_turn(const std::string& user, const std::string& reply);
     std::string build_system_prompt();

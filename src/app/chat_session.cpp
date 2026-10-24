@@ -104,3 +104,7 @@ std::string ChatSession::send(const std::string& user_text) {
                              std::to_string(kMaxToolRounds) + "), dibatalkan.");
 }
 
+void ChatSession::clear() {
+    memory_.clear_messages();   // DB dulu: kalau gagal, RAM tidak berubah
+    history_.resize(1);         // sisakan system prompt di indeks 0
+}

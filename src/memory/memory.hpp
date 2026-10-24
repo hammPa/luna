@@ -28,6 +28,8 @@ public:
 
     std::vector<std::pair<std::string, std::string>> all_facts();
 
+    void clear_messages();
+
 private:
     SQLite::Database db_;
 };

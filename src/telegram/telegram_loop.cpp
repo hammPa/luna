@@ -109,7 +109,7 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
                 bool handled = false;
                 if (!u.text.empty() && u.text[0] == '/') {
                     std::ostringstream out;
-                    handled = handle_command(u.text, memory, out);
+                    handled = handle_command(u.text, memory, session, out);
                     if (handled) reply = out.str();
                 }
                 if (!handled) {

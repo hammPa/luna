@@ -42,9 +42,19 @@ void cmd_facts(Memory& memory, std::ostream& out) {
     }
 }
 
+void cmd_clear(ChatSession& session, std::ostream& out) {
+    try {
+        session.clear();
+        out << "Riwayat dihapus. Fakta tetap tersimpan.\n\n";
+    } catch (const std::exception& e) {
+        std::cerr << "Gagal menghapus riwayat: " << e.what() << '\n';
+    }
+}
+
 }  // namespace
 
-bool handle_command(const std::string& line, Memory& memory, std::ostream& out) {
+bool handle_command(const std::string& line, Memory& memory, ChatSession& session,
+                    std::ostream& out){
     if (line.rfind("/remember ", 0) == 0) {
         cmd_remember(line.substr(10), memory, out);
         return true;
@@ -55,7 +65,11 @@ bool handle_command(const std::string& line, Memory& memory, std::ostream& out) 
     }
     if (line == "/start" || line == "/help") {
         out << "Halo, saya Luna. Kirim pesan biasa untuk ngobrol atau menjalankan tool.\n"
-            "Perintah: /remember kunci=nilai, /facts\n";
+            "Perintah: /remember kunci=nilai, /facts, /clear\n";
+        return true;
+    }
+    if (line == "/clear") {
+        cmd_clear(session, out);
         return true;
     }
     return false;

@@ -75,3 +75,7 @@ std::vector<std::pair<std::string, std::string>> Memory::all_facts() {
     }
     return out;
 }
+
+void Memory::clear_messages() {
+    db_.exec("DELETE FROM messages");
+}

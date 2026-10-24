@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
         if (line == "exit" || line == "quit") break;
         if (line.empty()) continue;
 
-        if (line[0] == '/' && handle_command(line, *memory, std::cout)) continue;
+        if (line[0] == '/' && handle_command(line, *memory, *session, std::cout)) continue;
 
         try {
             std::cout << session->send(line) << "\n\n";
