@@ -16,7 +16,8 @@ struct TelegramUpdate {
 
 class TelegramClient {
 public:
-    explicit TelegramClient(std::string token);
+    explicit TelegramClient(std::string token,
+                            std::string api_base = "https://api.telegram.org");
 
     // Long polling. Lempar runtime_error kalau jaringan/API gagal.
     // `next_offset` diperbarui ke update_id terakhir + 1.

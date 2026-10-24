@@ -106,7 +106,8 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
     },
 
     "telegram_allowed_users": [123456789],
-    "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN"
+    "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
+    "telegram_api_base_url": ""
 }
 ```
 
@@ -126,6 +127,7 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `apps` | Allowlist aplikasi. `run` = program untuk membuka, `process` = nama proses untuk menutup (tanpa `process` = tidak bisa ditutup). Nilai tanpa spasi/argumen |
 | `telegram_allowed_users` | Daftar user ID numerik yang boleh memakai bot. **Kosong = mode Telegram menolak start** |
 | `telegram_token_env` | Nama env var token bot |
+| `telegram_api_base_url` | Base URL |
 
 Contoh provider:
 

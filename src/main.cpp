@@ -9,22 +9,12 @@
 #include "tools/tool_registry.hpp"
 #include "tools/path_guard.hpp"
 
-#include "tools/builtin/get_time.hpp"
-#include "tools/builtin/read_file.hpp"
-#include "tools/builtin/list_dir.hpp"
-#include "tools/builtin/create_file.hpp"
-#include "tools/builtin/write_file.hpp"
-#include "tools/builtin/patch_file.hpp"
-#include "tools/builtin/delete_file.hpp"
-#include "tools/builtin/open_app.hpp"
-#include "tools/builtin/open_url.hpp"
-#include "tools/builtin/close_app.hpp"
-#include "tools/builtin/switch_workspace.hpp"
+#include "tools/builtin_tools.hpp"
 
 #include "telegram/telegram_loop.hpp"
-#include <cstring>
 #include "telegram/telegram_prompter.hpp"
 
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>

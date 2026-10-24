@@ -26,5 +26,6 @@
     },
 
     "telegram_allowed_users": [123456789],
-    "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN"
+    "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
+    "telegram_api_base_url": ""
 }

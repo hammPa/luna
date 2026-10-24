@@ -4,8 +4,16 @@
 
 using json = nlohmann::json;
 
-TelegramClient::TelegramClient(std::string token)
-    : base_("https://api.telegram.org/bot" + std::move(token) + "/") {}
+TelegramClient::TelegramClient(std::string token, std::string api_base) {
+    if (api_base.empty()) {
+        api_base = "https://api.telegram.org";
+    }
+    // Hapus trailing slash jika ada agar penyambungan URL konsisten
+    while (!api_base.empty() && api_base.back() == '/') {
+        api_base.pop_back();
+    }
+    base_ = api_base + "/bot" + std::move(token) + "/";
+}
 
 json TelegramClient::call(const std::string& method, const json& body, long http_timeout) {
     HttpResponse res = http_.post(base_ + method,
@@ -97,7 +105,6 @@ void TelegramClient::skip_backlog(long long& next_offset) {
         }
     }
 }
-
 
 void TelegramClient::delete_message(long long chat_id, long long message_id) {
     call("deleteMessage", {{"chat_id", chat_id}, {"message_id", message_id}}, 10);

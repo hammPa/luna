@@ -27,6 +27,7 @@ struct Config {
 
     std::vector<long long> telegram_allowed_users;
     std::string telegram_token_env = "LUNA_ASSISTANT_BOT_TOKEN";
+    std::string telegram_api_base_url = "https://api.telegram.org";
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

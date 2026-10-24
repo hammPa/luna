@@ -42,7 +42,7 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
                                  " belum di-set");
     }
 
-    TelegramClient tg(token);
+    TelegramClient tg(token, cfg.telegram_api_base_url);
     long long offset = 0;
 
     // Prompter memakai client dan offset yang sama dengan loop ini.
