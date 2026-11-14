@@ -50,6 +50,9 @@ int main(int argc, char** argv) {
         
         if (SwitchWorkspaceTool::available()) {
             registry->add(std::make_unique<SwitchWorkspaceTool>());
+            registry->add(std::make_unique<ListWindowsTool>());
+            registry->add(std::make_unique<FocusWindowTool>());
+            registry->add(std::make_unique<CloseWindowTool>(!telegram_mode));
         }
 
         if (!cfg.apps.empty()) {

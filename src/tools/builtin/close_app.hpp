@@ -1,11 +1,15 @@
 #pragma once
 
-#include "tools/path_guard.hpp"   // arg_string
-#include "utils/process_utils.hpp"
+#include "tools/path_guard.hpp"  // arg_string
 #include "tools/tool.hpp"
-#include "utils/config.hpp"
+#include "utils/config.hpp"      // AppEntry
+#include "utils/process_utils.hpp"
 
+#include <chrono>
 #include <map>
+#include <stdexcept>
+#include <string>
+#include <thread>
 
 class CloseAppTool : public Tool {
 public:
@@ -24,8 +28,9 @@ public:
     std::string name() const override { return "close_app"; }
 
     std::string description() const override {
-        std::string d = "Menutup aplikasi yang sedang berjalan dengan sopan (SIGTERM). "
-                        "Pekerjaan yang belum disimpan bisa hilang. Yang bisa ditutup: ";
+        std::string d = "Menutup SEMUA jendela satu aplikasi yang sedang berjalan dengan sopan (SIGTERM). "
+                        "Pekerjaan yang belum disimpan bisa hilang. Untuk menutup satu jendela saja "
+                        "gunakan close_window. Yang bisa ditutup: ";
         bool first = true;
         for (const auto& [k, p] : closable_) {
             d += (first ? "" : ", ") + k;
@@ -50,7 +55,7 @@ public:
         try {
             std::string n = arg_string(args, "name", "?");
             auto it = closable_.find(n);
-            return "MENUTUP aplikasi '" + n + "'" +
+            return "MENUTUP semua jendela aplikasi '" + n + "'" +
                    (it != closable_.end() ? " (proses: " + it->second + ")" : " (tidak ada di daftar)") +
                    ". Pekerjaan yang belum disimpan bisa hilang.";
         } catch (const std::exception&) {
@@ -64,12 +69,27 @@ public:
         if (it == closable_.end()) {
             throw std::runtime_error("Aplikasi '" + n + "' tidak ada di daftar yang boleh ditutup.");
         }
-        if (!program_exists("pkill")) throw std::runtime_error("pkill tidak ditemukan di sistem.");
+        if (!program_exists("pkill") || !program_exists("pgrep")) {
+            throw std::runtime_error("pkill atau pgrep tidak ditemukan di sistem.");
+        }
 
-        const int rc = run_and_wait({"pkill", "-TERM", "-x", "-U", std::to_string(getuid()), it->second});
-        if (rc == 0) return "Sinyal tutup dikirim ke '" + n + "'. Aplikasi akan keluar sebentar lagi.";
+        const std::string uid = std::to_string(getuid());
+        const std::string& proc = it->second;
+
+        const int rc = run_and_wait({"pkill", "-TERM", "-x", "-U", uid, proc});
         if (rc == 1) return "Aplikasi '" + n + "' sedang tidak berjalan.";
-        throw std::runtime_error("pkill gagal (kode " + std::to_string(rc) + ").");
+        if (rc != 0) throw std::runtime_error("pkill gagal (kode " + std::to_string(rc) + ").");
+
+        // Verifikasi: tunggu sampai prosesnya benar-benar hilang (maks ~1,5 detik).
+        for (int i = 0; i < 10; ++i) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+            if (run_and_wait({"pgrep", "-x", "-U", uid, proc}) == 1) {
+                return "Aplikasi '" + n + "' sudah ditutup.";
+            }
+        }
+        return "Permintaan tutup dikirim ke '" + n + "', tapi masih berjalan (mungkin menunggu "
+               "konfirmasi seperti simpan dokumen). Cek layar, atau pakai list_windows dan "
+               "close_window untuk menutup satu jendela.";
     }
 
 private:

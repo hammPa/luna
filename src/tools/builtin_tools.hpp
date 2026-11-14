@@ -9,3 +9,6 @@
 #include "tools/builtin/open_url.hpp"
 #include "tools/builtin/close_app.hpp"
 #include "tools/builtin/switch_workspace.hpp"
+#include "tools/builtin/list_windows.hpp"
+#include "tools/builtin/close_window.hpp"
+#include "tools/builtin/focus_window.hpp"
