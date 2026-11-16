@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <filesystem>
 
 namespace {
 
@@ -29,9 +30,14 @@ namespace {
         }
     };
 
+    struct MimeDeleter {
+        void operator()(curl_mime* m) const { curl_mime_free(m); }
+    };
+    
     // tipe data dan custom deleter untuk smart pointer
     using CurlHandle = std::unique_ptr<CURL, CurlDeleter>;
     using SlistHandle = std::unique_ptr<curl_slist, SlistDeleter>;
+    using MimeHandle = std::unique_ptr<curl_mime, MimeDeleter>;
 
     SlistHandle build_headers(const std::vector<std::string>& headers){
         curl_slist* raw = nullptr;
@@ -80,6 +86,63 @@ HttpResponse HttpClient::post(const std::string& url,
     if (rc != CURLE_OK) {
         throw std::runtime_error(std::string("Request gagal: ") +
                                  curl_easy_strerror(rc));
+    }
+
+    HttpResponse res;
+    curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &res.statusCode);
+    res.body = std::move(response_body);
+    return res;
+}
+
+HttpResponse HttpClient::post_multipart(const std::string& url,
+                                        const std::vector<std::string>& headers,
+                                        const std::vector<MultipartField>& fields,
+                                        const MultipartFile& file,
+                                        long timeout_sec) {
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(file.path, ec)) {
+        throw std::runtime_error("File tidak ditemukan untuk diunggah.");
+    }
+
+    SlistHandle slist = build_headers(headers);
+    CurlHandle curl(curl_easy_init());
+    if (!curl) throw std::runtime_error("curl_easy_init gagal");
+    CURL* c = curl.get();
+
+    MimeHandle mime(curl_mime_init(c));
+    if (!mime) throw std::runtime_error("curl_mime_init gagal");
+
+    for (const auto& f : fields) {
+        curl_mimepart* part = curl_mime_addpart(mime.get());
+        if (part == nullptr || curl_mime_name(part, f.name.c_str()) != CURLE_OK ||
+            curl_mime_data(part, f.value.c_str(), CURL_ZERO_TERMINATED) != CURLE_OK) {
+            throw std::runtime_error("Gagal menyusun field multipart.");
+        }
+    }
+
+    const std::string path = file.path.string();
+    curl_mimepart* part = curl_mime_addpart(mime.get());
+    if (part == nullptr || curl_mime_name(part, file.field.c_str()) != CURLE_OK ||
+        curl_mime_filedata(part, path.c_str()) != CURLE_OK ||
+        curl_mime_filename(part, file.filename.c_str()) != CURLE_OK) {
+        throw std::runtime_error("Gagal menyusun bagian file multipart.");
+    }
+    if (!file.mime.empty() && curl_mime_type(part, file.mime.c_str()) != CURLE_OK) {
+        throw std::runtime_error("Gagal mengatur tipe file.");
+    }
+
+    std::string response_body;
+    curl_easy_setopt(c, CURLOPT_URL, url.c_str());
+    if (slist) curl_easy_setopt(c, CURLOPT_HTTPHEADER, slist.get());
+    curl_easy_setopt(c, CURLOPT_MIMEPOST, mime.get());
+    curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(c, CURLOPT_WRITEDATA, &response_body);
+    curl_easy_setopt(c, CURLOPT_TIMEOUT, timeout_sec);
+
+    CURLcode rc = curl_easy_perform(c);
+    if (rc != CURLE_OK) {
+        // Jangan sertakan URL (berisi token bot).
+        throw std::runtime_error(std::string("Upload gagal: ") + curl_easy_strerror(rc));
     }
 
     HttpResponse res;

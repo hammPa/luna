@@ -16,7 +16,8 @@
         "write": "ask",
         "destructive": "ask",
         "execute": "ask",
-        "privileged": "ask"
+        "privileged": "ask",
+        "exfiltrate": "ask"
     },
 
     "apps": {
@@ -27,5 +28,6 @@
 
     "telegram_allowed_users": [123456789],
     "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
-    "telegram_api_base_url": ""
+    "telegram_api_base_url": "",
+    "max_send_mb": 20
 }

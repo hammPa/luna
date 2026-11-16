@@ -11,7 +11,8 @@ enum class Risk {
     Write,        // membuat atau mengubah file
     Destructive,  // menghapus atau menimpa
     Execute,      // menjalankan program lain
-    Privileged    // butuh sudo
+    Privileged,    // butuh sudo
+    Exfiltrate   // mengirim data keluar dari komputer (mis. mengunggah file ke Telegram)
 };
 
 class Tool {

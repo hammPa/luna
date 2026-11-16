@@ -15,10 +15,7 @@ TelegramClient::TelegramClient(std::string token, std::string api_base) {
     base_ = api_base + "/bot" + std::move(token) + "/";
 }
 
-json TelegramClient::call(const std::string& method, const json& body, long http_timeout) {
-    HttpResponse res = http_.post(base_ + method,
-                                  {"Content-Type: application/json"},
-                                  body.dump(), http_timeout);
+json TelegramClient::parse_reply(const HttpResponse& res) {
     json j;
     try {
         j = json::parse(res.body);
@@ -26,12 +23,19 @@ json TelegramClient::call(const std::string& method, const json& body, long http
         throw std::runtime_error("Telegram: balasan bukan JSON (HTTP " +
                                  std::to_string(res.statusCode) + ")");
     }
-    if (!j.value("ok", false)) {
+    if (!j.is_object() || !j.value("ok", false)) {
         // Jangan sertakan URL (berisi token).
-        throw std::runtime_error("Telegram API error " + std::to_string(res.statusCode) + ": " +
-                                 j.value("description", std::string("tanpa deskripsi")));
+        const std::string why = j.is_object() ? j.value("description", std::string("tanpa deskripsi"))
+                                              : std::string("balasan tidak dikenal");
+        throw std::runtime_error("Telegram API error " + std::to_string(res.statusCode) + ": " + why);
     }
     return j;
+}
+
+json TelegramClient::call(const std::string& method, const json& body, long http_timeout) {
+    HttpResponse res = http_.post(base_ + method, {"Content-Type: application/json"},
+                                  body.dump(), http_timeout);
+    return parse_reply(res);
 }
 
 std::vector<TelegramUpdate> TelegramClient::get_updates(long long& next_offset,
@@ -108,4 +112,26 @@ void TelegramClient::skip_backlog(long long& next_offset) {
 
 void TelegramClient::delete_message(long long chat_id, long long message_id) {
     call("deleteMessage", {{"chat_id", chat_id}, {"message_id", message_id}}, 10);
+}
+
+void TelegramClient::send_document(long long chat_id, const std::filesystem::path& file,
+                                   const std::string& caption) {
+    // Batas keterangan Telegram 1024 karakter; potong tanpa merusak UTF-8.
+    std::string cap = caption;
+    if (cap.size() > 1000) {
+        std::size_t cut = 1000;
+        while (cut > 0 && (static_cast<unsigned char>(cap[cut]) & 0xC0) == 0x80) --cut;
+        cap.resize(cut);
+    }
+
+    std::vector<MultipartField> fields = {{"chat_id", std::to_string(chat_id)}};
+    if (!cap.empty()) fields.push_back({"caption", cap});
+
+    MultipartFile mf;
+    mf.field = "document";
+    mf.path = file;
+    mf.filename = file.filename().string();
+
+    HttpResponse res = http_.post_multipart(base_ + "sendDocument", {}, fields, mf, 180);
+    parse_reply(res);
 }

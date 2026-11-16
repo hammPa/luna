@@ -28,6 +28,8 @@ struct Config {
     std::vector<long long> telegram_allowed_users;
     std::string telegram_token_env = "LUNA_ASSISTANT_BOT_TOKEN";
     std::string telegram_api_base_url = "https://api.telegram.org";
+
+    int max_send_mb = 20;   // batas total ukuran file per pengiriman (1-50)
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

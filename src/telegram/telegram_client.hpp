@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include <filesystem>
 
 struct TelegramUpdate {
     long long update_id = 0;
@@ -34,11 +35,16 @@ public:
 
     // Hapus pesan. Gagal (mis. sudah terlalu lama) tidak fatal.
     void delete_message(long long chat_id, long long message_id);
+
+    // Kirim satu file sebagai dokumen. Batas bot Telegram: 50 MB.
+    void send_document(long long chat_id, const std::filesystem::path& file,
+                    const std::string& caption = "");
 private:
     nlohmann::json call(const std::string& method, const nlohmann::json& body, long http_timeout);
 
     HttpClient http_;
     std::string base_;  // https://api.telegram.org/bot<TOKEN>/
+    static nlohmann::json parse_reply(const HttpResponse& res);
 };
 
 // Dipisah agar bisa dites sendiri.

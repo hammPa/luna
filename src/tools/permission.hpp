@@ -17,6 +17,7 @@ struct PermissionPolicy {
         {Risk::Destructive, Policy::Ask},
         {Risk::Execute, Policy::Ask},
         {Risk::Privileged, Policy::Ask},
+        {Risk::Exfiltrate, Policy::Ask},
     };
 };
 

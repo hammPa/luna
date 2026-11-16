@@ -1,8 +1,8 @@
 # Luna
 
-Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
+Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 0.6.0 (pra-rilis, dalam pengembangan)**
+**Versi saat ini: 0.7.0 (pra-rilis, dalam pengembangan)**
 
 | Versi | Isi |
 |---|---|
@@ -12,6 +12,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngo
 | 0.4 | Mode Telegram, persetujuan dari HP, TOTP untuk aksi berbahaya |
 | 0.5 | `delete_file` (ke `.trash`), `switch_workspace` (Hyprland), `/clear`, base URL Telegram yang bisa diatur (reverse proxy) |
 | 0.6 | Kontrol jendela Hyprland (`list_windows`, `focus_window`, `close_window`), `close_app` melaporkan hasil sebenarnya |
+| 0.7 | Suite tes otomatis (doctest), `search_files`, `send_file` (unggah file ke Telegram dengan persetujuan TOTP), tingkat risiko `Exfiltrate`, upload multipart |
 
 ---
 
@@ -105,7 +106,8 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
         "write": "ask",
         "destructive": "ask",
         "execute": "ask",
-        "privileged": "ask"
+        "privileged": "ask",
+        "exfiltrate": "ask",
     },
 
     "apps": {
@@ -116,7 +118,9 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 
     "telegram_allowed_users": [123456789],
     "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
-    "telegram_api_base_url": ""
+    "telegram_api_base_url": "",
+
+    "max_send_mb": 20
 }
 ```
 
@@ -137,6 +141,7 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `telegram_allowed_users` | User ID numerik yang boleh memakai bot. **Kosong = mode Telegram menolak start** |
 | `telegram_token_env` | Nama env var token bot |
 | `telegram_api_base_url` | Base URL API Telegram. **Kosong = `https://api.telegram.org`.** Isi dengan URL reverse proxy bila jaringanmu tidak bisa menjangkau Telegram. Harus `https://` |
+| `max_send_mb` | Batas total ukuran file per pengiriman lewat `send_file`, 1 sampai 50 (batas bot Telegram 50 MB). Default 20 |
 
 Contoh provider:
 
@@ -195,6 +200,8 @@ Fakta otomatis disisipkan ke system prompt di setiap giliran, jadi tidak terpoto
 | `list_windows` | Daftar jendela terbuka. `scope`: `all`, `workspace` (yang sedang fokus), atau `active`. Menandai jendela yang fokus | Safe | sesi Hyprland dan `hyprctl` ada |
 | `focus_window` | Pindah fokus: arah (`left`, `right`, `up`, `down`) atau alamat jendela dari `list_windows` | Safe | sesi Hyprland dan `hyprctl` ada |
 | `close_window` | Tutup **satu jendela** (yang fokus atau lewat alamat), bukan seluruh aplikasi | Destructive | sesi Hyprland dan `hyprctl` ada |
+| `search_files` | Cari file berdasarkan potongan nama (hasil dengan ukuran; file rahasia disembunyikan) | Safe | `allowed_dirs` terisi |
+| `send_file` | Kirim 1-5 file ke pengguna. Telegram: diunggah ke chat. Terminal: hanya menunjukkan lokasi | Exfiltrate (Telegram) / Safe (terminal) | `allowed_dirs` terisi |
 
 Contoh: "buka youtube cari lofi", "buat file catatan.txt isinya ...", "ganti 'Halo' jadi 'Hai' di catatan.txt", "hapus file catatan.txt", "pindah ke workspace 3", "app apa saja yang terbuka", "fokus ke kanan", "tutup jendela ini", "tutup browser".
 
@@ -224,11 +231,12 @@ Semua tool lewat satu gerbang di `ToolRegistry::run`; tool tidak bisa melewatiny
 
 | Risiko | Contoh | Perilaku default |
 |---|---|---|
-| Safe | `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window` | Langsung jalan |
+| Safe | `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window`, `search_files` | Langsung jalan |
 | Write | `create_file`, `patch_file` | Tanya; boleh "always" untuk sesi ini (hanya di terminal) |
 | Destructive | menimpa file, `delete_file`, `close_app`, `close_window` | Selalu tanya, **tanpa "always"** |
 | Execute | `open_url`, `open_app` | Selalu tanya, **tanpa "always"** |
 | Privileged | (belum ada tool) | Selalu tanya, tanpa "always" |
+| Exfiltrate | `send_file` dari Telegram | Selalu tanya, **tanpa "always"**; dari Telegram butuh kode TOTP |
 
 Aturan keras: kebijakan `allow` untuk Destructive/Execute/Privileged dipaksa menjadi `ask`. Tanpa jawaban, EOF, atau error berarti **ditolak**.
 
@@ -279,7 +287,8 @@ Jika jaringan tempat Luna berjalan tidak bisa menjangkau `api.telegram.org` (beb
 | Log | Hanya panjang pesan, bukan isinya |
 | Safe | Langsung jalan |
 | Write, Execute | Balas `y` atau `n` (timeout 60 detik, tanpa "always") |
-| Destructive, Privileged | Butuh kode TOTP; tanpa `LUNA_TOTP_SECRET` otomatis ditolak |
+| Destructive, Privileged, Exfiltrate | Butuh kode TOTP; tanpa `LUNA_TOTP_SECRET` otomatis ditolak |
+| `send_file` | Satu kode untuk seluruh pengiriman (maks 5 file). File rahasia (`.env`, `*.key`, `*.db`, `config.json`, folder `.ssh`/`.git`) selalu ditolak |
 | `close_window` | Wajib memakai alamat eksplisit dari `list_windows` |
 | Batas laju | Maks 5 permintaan izin per 10 menit |
 | Jawaban izin/kode | Dicegat sebelum model; tidak masuk riwayat atau database |
@@ -386,8 +395,9 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - [x] `switch_workspace` (Hyprland)
 - [x] Base URL Telegram yang bisa diatur
 - [x] Kontrol jendela: `list_windows`, `focus_window`, `close_window`
+- [x] `search_files` dan `send_file` (kirim file ke Telegram)
 - [ ] `HttpClient::get`, lalu `search_web`, `fetch_url`, `weather`
-- [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, file lanjutan
+- [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`
 - [ ] `open_url` dengan pilihan browser dan jendela baru
 - [ ] Tes otomatis (target CMake) dan CI
 - [ ] Service systemd, pengingat, dan tugas terjadwal
@@ -400,3 +410,4 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - Jangan commit `config.json` yang berisi ID pribadi, `memory.db`, atau secret apa pun. Commit `config.example.json` saja.
 - Pesan, isi file yang dibaca tool, dan daftar jendela dikirim ke provider LLM yang kamu pilih, dan lewat server Telegram (atau proxy-mu) jika memakai mode Telegram.
 - Perlakukan token bot dan secret TOTP seperti password. Jika bocor: `/revoke` di BotFather, dan buat secret TOTP baru.
+- File yang dikirim lewat Telegram tersimpan di server Telegram (bot tidak end-to-end encrypted). Jangan kirim dokumen yang sangat sensitif.

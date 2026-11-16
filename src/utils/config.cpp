@@ -62,6 +62,11 @@ Config load_config(const std::string& path) {
         }
         
         cfg.history_limit = static_cast<std::size_t>(limit);
+
+        cfg.max_send_mb = j.value("max_send_mb", cfg.max_send_mb);
+        if (cfg.max_send_mb < 1 || cfg.max_send_mb > 50) {
+            throw std::runtime_error("max_send_mb harus 1 sampai 50 (batas bot Telegram 50 MB)");
+        }
     } catch (const json::exception& e) {
         // misalnya "model" berisi angka, bukan string
         throw std::runtime_error("Tipe field config salah: " + std::string(e.what()));

@@ -28,6 +28,7 @@ add_executable(luna
     src/telegram/telegram_client.cpp
     src/telegram/telegram_loop.cpp
     src/telegram/telegram_prompter.cpp
+    src/telegram/telegram_file_sink.cpp
     src/auth/totp.cpp
 )
 

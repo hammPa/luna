@@ -37,7 +37,7 @@ Decision TelegramPrompter::ask(const std::string& question, bool /*can_always*/,
     if (tg_ == nullptr || offset_ == nullptr || chat_id_ == 0) return Decision::Deny;
 
     try {
-        if (risk == Risk::Destructive || risk == Risk::Privileged) {
+        if (risk == Risk::Destructive || risk == Risk::Privileged || risk == Risk::Exfiltrate) {
             if (verifier_ == nullptr) {
                 tg_->send_message(chat_id_, question +
                     "\n\nDITOLAK: aksi ini butuh kode authenticator, tapi LUNA_TOTP_SECRET belum di-set.");

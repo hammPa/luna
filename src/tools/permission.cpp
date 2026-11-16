@@ -10,13 +10,15 @@ const char* risk_label(Risk r) {
         case Risk::Destructive: return "MENGHAPUS/MENIMPA";
         case Risk::Execute:     return "MENJALANKAN PROGRAM";
         case Risk::Privileged:  return "HAK ISTIMEWA (sudo)";
+        case Risk::Exfiltrate: return "MENGIRIM DATA KELUAR";
     }
     return "?";
 }
 
-// Tiga tingkat ini tidak boleh lolos otomatis, apa pun isi config.
+// Empat tingkat ini tidak boleh lolos otomatis, apa pun isi config.
 bool never_auto(Risk r) {
-    return r == Risk::Destructive || r == Risk::Execute || r == Risk::Privileged;
+    return r == Risk::Destructive || r == Risk::Execute || r == Risk::Privileged ||
+       r == Risk::Exfiltrate;
 }
 
 }  // namespace
@@ -73,6 +75,7 @@ PermissionPolicy make_policy(const std::map<std::string, std::string>& cfg) {
         {"safe", Risk::Safe},         {"write", Risk::Write},
         {"destructive", Risk::Destructive},
         {"execute", Risk::Execute},   {"privileged", Risk::Privileged},
+        {"exfiltrate", Risk::Exfiltrate},
     };
     static const std::map<std::string, Policy> policies = {
         {"allow", Policy::Allow}, {"ask", Policy::Ask}, {"deny", Policy::Deny},

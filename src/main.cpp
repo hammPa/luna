@@ -14,10 +14,48 @@
 #include "telegram/telegram_loop.hpp"
 #include "telegram/telegram_prompter.hpp"
 
+#include "telegram/telegram_file_sink.hpp"
+
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <string>
+
+void register_tools(ToolRegistry& registry, const Config& cfg,
+                    std::unique_ptr<PathGuard>& guard, FileSink& file_sink, bool telegram_mode) {
+    registry.add(std::make_unique<GetTimeTool>());
+    registry.add(std::make_unique<OpenUrlTool>());
+        
+    if (SwitchWorkspaceTool::available()) {
+        registry.add(std::make_unique<SwitchWorkspaceTool>());
+        registry.add(std::make_unique<ListWindowsTool>());
+        registry.add(std::make_unique<FocusWindowTool>());
+        registry.add(std::make_unique<CloseWindowTool>(!telegram_mode));
+    }
+
+    if (!cfg.apps.empty()) {
+        registry.add(std::make_unique<OpenAppTool>(cfg.apps));
+        
+        auto closer = std::make_unique<CloseAppTool>(cfg.apps);
+        if (!closer->empty()) registry.add(std::move(closer));
+    }
+        
+    // Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.
+    if (!cfg.allowed_dirs.empty()) {
+        guard = std::make_unique<PathGuard>(cfg.allowed_dirs);
+        registry.add(std::make_unique<ListDirTool>(*guard));
+        registry.add(std::make_unique<ReadFileTool>(*guard));
+    
+        registry.add(std::make_unique<CreateFileTool>(*guard));
+        registry.add(std::make_unique<PatchFileTool>(*guard));
+        registry.add(std::make_unique<WriteFileTool>(*guard));
+        registry.add(std::make_unique<DeleteFileTool>(*guard));
+        
+        registry.add(std::make_unique<SearchFilesTool>(*guard));
+        registry.add(std::make_unique<SendFileTool>(
+            *guard, file_sink, static_cast<std::uintmax_t>(cfg.max_send_mb) * 1024 * 1024));
+    }
+}
 
 int main(int argc, char** argv) {
     const std::string config_path = (argc > 1) ? argv[1] : "config.json";
@@ -33,6 +71,12 @@ int main(int argc, char** argv) {
     Prompter& prompter = telegram_mode ? static_cast<Prompter&>(telegram_prompter)
                                    : static_cast<Prompter&>(terminal_prompter);
 
+
+    TerminalFileSink terminal_sink;
+    TelegramFileSink telegram_sink;
+    FileSink& file_sink = telegram_mode ? static_cast<FileSink&>(telegram_sink)
+                                        : static_cast<FileSink&>(terminal_sink);
+
     std::unique_ptr<PathGuard> guard;
     std::unique_ptr<PermissionGate> gate;
     std::unique_ptr<ToolRegistry> registry;
@@ -45,34 +89,8 @@ int main(int argc, char** argv) {
 
         gate = std::make_unique<PermissionGate>(make_policy(cfg.permissions), prompter);
         registry = std::make_unique<ToolRegistry>(*gate);
-        registry->add(std::make_unique<GetTimeTool>());
-        registry->add(std::make_unique<OpenUrlTool>());
-        
-        if (SwitchWorkspaceTool::available()) {
-            registry->add(std::make_unique<SwitchWorkspaceTool>());
-            registry->add(std::make_unique<ListWindowsTool>());
-            registry->add(std::make_unique<FocusWindowTool>());
-            registry->add(std::make_unique<CloseWindowTool>(!telegram_mode));
-        }
 
-        if (!cfg.apps.empty()) {
-            registry->add(std::make_unique<OpenAppTool>(cfg.apps));
-            
-            auto closer = std::make_unique<CloseAppTool>(cfg.apps);
-            if (!closer->empty()) registry->add(std::move(closer));
-        }
-        
-        // Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.
-        if (!cfg.allowed_dirs.empty()) {
-            guard = std::make_unique<PathGuard>(cfg.allowed_dirs);
-            registry->add(std::make_unique<ListDirTool>(*guard));
-            registry->add(std::make_unique<ReadFileTool>(*guard));
-        
-            registry->add(std::make_unique<CreateFileTool>(*guard));
-            registry->add(std::make_unique<PatchFileTool>(*guard));
-            registry->add(std::make_unique<WriteFileTool>(*guard));
-            registry->add(std::make_unique<DeleteFileTool>(*guard));
-        }
+        register_tools(*registry, cfg, guard, file_sink, telegram_mode);
 
         session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
         session->load();
@@ -86,7 +104,7 @@ int main(int argc, char** argv) {
 
     if (telegram_mode) {
         try {
-            run_telegram(cfg, *session, *memory, telegram_prompter);
+            run_telegram(cfg, *session, *memory, telegram_prompter, telegram_sink);
         } catch (const std::exception& e) {
             std::cerr << "Gagal: " << e.what() << '\n';
             return 1;

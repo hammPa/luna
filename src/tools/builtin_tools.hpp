@@ -12,3 +12,6 @@
 #include "tools/builtin/list_windows.hpp"
 #include "tools/builtin/close_window.hpp"
 #include "tools/builtin/focus_window.hpp"
+#include "tools/builtin/search_files.hpp"
+#include "tools/builtin/send_file.hpp"
+#include "tools/file_sink.hpp"
