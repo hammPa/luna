@@ -18,6 +18,11 @@
 #include "search/search_factory.hpp"
 #include "utils/log.hpp"
 
+#include "tui/tui_app.hpp"
+#include "tui/tui_prompter.hpp"
+
+#include <unistd.h>
+
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -65,9 +70,29 @@ void register_tools(ToolRegistry& registry, const Config& cfg,
     }
 }
 
+enum class Mode { Tui, Cli, Telegram };
+
 int main(int argc, char** argv) {
     const std::string config_path = (argc > 1) ? argv[1] : "config.json";
-    const bool telegram_mode = (argc > 2 && std::strcmp(argv[2], "--telegram") == 0);
+
+    Mode mode = Mode::Tui;
+    if (argc > 2) {
+        if (std::strcmp(argv[2], "--telegram") == 0) {
+            mode = Mode::Telegram;
+        } else if (std::strcmp(argv[2], "--cli") == 0) {
+            mode = Mode::Cli;
+        } else {
+            std::cerr << "Argumen tidak dikenal: " << argv[2]
+                      << "\nPakai: luna [config.json] [--cli | --telegram]\n";
+            return 1;
+        }
+    }
+    const bool telegram_mode = (mode == Mode::Telegram);
+
+    if (mode == Mode::Tui && (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))) {
+        std::cerr << "TUI butuh terminal interaktif. Pakai --cli untuk input dari pipe.\n";
+        return 1;
+    }
 
     // Urutan deklarasi penting: yang dirujuk ChatSession harus
     // dideklarasikan lebih dulu (dihancurkan belakangan).
@@ -76,8 +101,10 @@ int main(int argc, char** argv) {
     std::unique_ptr<Memory> memory;
     TelegramPrompter telegram_prompter;
     TerminalPrompter terminal_prompter;
-    Prompter& prompter = telegram_mode ? static_cast<Prompter&>(telegram_prompter)
-                                   : static_cast<Prompter&>(terminal_prompter);
+    TuiPrompter tui_prompter;
+    Prompter& prompter = (mode == Mode::Telegram) ? static_cast<Prompter&>(telegram_prompter)
+                       : (mode == Mode::Cli)      ? static_cast<Prompter&>(terminal_prompter)
+                                                  : static_cast<Prompter&>(tui_prompter);
 
 
     TerminalFileSink terminal_sink;
@@ -115,7 +142,8 @@ int main(int argc, char** argv) {
             if (!tool_names.empty()) tool_names += ",";
             tool_names += t.value("name", "?");
         }
-        logger::info("app", std::string("start mode=") + (telegram_mode ? "telegram" : "terminal") +
+        const char* mode_name = telegram_mode ? "telegram" : (mode == Mode::Cli ? "cli" : "tui");
+        logger::info("app", std::string("start mode=") + mode_name +
                             " backend=" + backend->name() + " model=" + cfg.model +
                             " history=" + std::to_string(session->history_size()));
         logger::info("app", "tools=" + tool_names);
@@ -137,6 +165,14 @@ int main(int argc, char** argv) {
             return 1;
         }
         return 0;
+    }
+
+    if (mode == Mode::Tui) {
+        const std::string status = backend->name() + " · " + cfg.model + " · " +
+                                   std::to_string(registry->schema().size()) + " tool";
+        const int rc = run_tui(*session, *memory, tui_prompter, status);
+        logger::info("app", "berhenti");
+        return rc;
     }
 
     std::cout << "Backend: " << backend->name() << " | Model: " << cfg.model

@@ -1,8 +1,8 @@
 # Luna
 
-Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
+Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 0.9.0 (pra-rilis, dalam pengembangan)**
+**Versi saat ini: 1.0.0**
 
 | Versi | Isi |
 |---|---|
@@ -15,12 +15,13 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngo
 | 0.7 | `search_files`, `send_file` (unggah file ke Telegram dengan persetujuan TOTP), tingkat risiko `Exfiltrate`, upload multipart |
 | 0.8 | Akses web: `HttpClient::get`, `weather` (Open-Meteo), `search_web` dengan provider pencarian yang bisa diganti (`SearchProvider`, saat ini Tavily) |
 | 0.9 | Log ke file (rotasi, tanpa isi pesan) dan dokumentasi model lokal lewat Ollama |
+| 1.0 | Antarmuka TUI (FTXUI) menggantikan CLI sebagai mode bawaan; CLI tetap ada lewat `--cli` |
 
 ---
 
 ## Fitur
 
-- **Chat teks** di terminal, dengan riwayat percakapan.
+- **Antarmuka TUI** (FTXUI): layar chat satu halaman, kotak izin interaktif, indikator saat menunggu jawaban. Mode `--cli` tetap tersedia untuk SSH dan pipe.
 - **Backend AI agnostik**: semua provider yang kompatibel dengan OpenAI API (OpenAI, Mistral, Groq, DeepSeek, OpenRouter, router seperti 9router) dan model lokal lewat Ollama. Ganti model/provider cukup edit `config.json`, tanpa rebuild.
 - **Memori jangka panjang** (SQLite): riwayat chat dan fakta permanen tentangmu.
 - **Tool calling**: model memanggil tool yang kamu daftarkan.
@@ -43,6 +44,7 @@ Sistem: **Linux** (memakai `fork`, `execvp`, `xdg-open`, `pkill`, `localtime_r`)
 | libcurl (dev) | `sudo apt install libcurl4-openssl-dev` |
 | nlohmann/json | satu file header di `third_party/nlohmann/json.hpp` |
 | SQLiteCpp | di `third_party/SQLiteCpp` |
+| FTXUI v6.1.9 | di `third_party/FTXUI` (di-vendor, tidak perlu dipasang sistem) |
 
 Program pendukung (opsional; tool terkait hanya aktif jika programnya ada):
 
@@ -67,6 +69,8 @@ cd luna
 mkdir -p third_party/nlohmann
 # letakkan json.hpp dari rilis nlohmann/json di third_party/nlohmann/json.hpp
 git clone https://github.com/SRombauts/SQLiteCpp.git third_party/SQLiteCpp
+
+git clone --depth 1 --branch v6.1.9 https://github.com/ArthurSonzogni/FTXUI.git third_party/FTXUI
 
 cp config.example.json config.json   # lalu sesuaikan
 
@@ -207,14 +211,44 @@ export LUNA_DUMMY_KEY=ollama     # nilainya bebas, tetapi env var harus terisi
 Dari folder `build/`:
 
 ```bash
-# Mode terminal
+# TUI (bawaan)
 ./luna ../config.json
+
+# Mode Cli
+./luna ../config.json --cli
 
 # Mode Telegram
 ./luna ../config.json --telegram
 ```
 
-Argumen pertama adalah path config (default `config.json` di folder aktif). `--telegram` harus argumen kedua.
+Argumen pertama adalah path config (default `config.json`). Argumen kedua opsional: `--cli` atau `--telegram`; argumen lain ditolak. TUI butuh terminal interaktif; untuk pipe pakai `--cli`, mis. `echo "halo" | ./luna ../config.json --cli`.
+
+## TUI
+
+Layar terdiri dari header (backend, model, jumlah tool), area chat yang otomatis mengikuti pesan terbaru, kotak input, dan bilah petunjuk.
+
+| Tombol | Fungsi |
+|---|---|
+| Enter | Kirim pesan atau perintah `/...` |
+| `exit` atau `quit` | Keluar |
+| Ctrl+C | Keluar |
+
+Saat sebuah tool butuh izin, muncul kotak di tengah layar:
+
+| Tombol | Arti |
+|---|---|
+| `y` | Izinkan sekali |
+| `a` | Selalu untuk sesi ini (hanya ditawarkan untuk risiko Write) |
+| `n` atau Esc | Tolak |
+
+Selama kotak izin terbuka, tombol lain tidak berfungsi. Menutup TUI saat izin menunggu berarti **ditolak**.
+
+Hal yang perlu diketahui:
+- Panggilan LLM berjalan di thread terpisah, jadi layar tidak membeku. Satu giliran diproses pada satu waktu; Enter diabaikan selagi Luna menjawab.
+- Jawaban muncul sekaligus (belum ada streaming).
+- Selama TUI aktif, `stderr` dialihkan ke `/dev/null` agar peringatan tidak merusak layar. Isi `log_file` untuk tetap melihat WARN dan ERROR.
+- Teks dari model dibersihkan dari karakter kontrol sebelum ditampilkan.
+- Menutup TUI saat Luna masih menunggu LLM akan menunggu permintaan itu selesai (maksimal `timeout_sec`).
 
 ### Perintah di chat
 
@@ -224,7 +258,7 @@ Argumen pertama adalah path config (default `config.json` di folder aktif). `--t
 | `/facts` | Tampilkan semua fakta |
 | `/clear` | Hapus riwayat percakapan (RAM dan database). **Fakta tidak ikut terhapus** |
 | `/start`, `/help` | Bantuan singkat (Telegram) |
-| `exit` / `quit` / Ctrl+D | Keluar (mode terminal) |
+| `exit` / `quit` | Keluar (TUI dan CLI). Di CLI juga Ctrl+D; di TUI juga Ctrl+C |
 
 Fakta otomatis disisipkan ke system prompt di setiap giliran, jadi tidak terpotong oleh `history_limit`. `/clear` berguna kalau model mulai meniru jawaban lama yang sudah basi.
 
@@ -284,11 +318,13 @@ Semua tool lewat satu gerbang di `ToolRegistry::run`; tool tidak bisa melewatiny
 | Risiko | Contoh | Perilaku default |
 |---|---|---|
 | Safe | `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window`, `search_files`, `weather`, `search_web` | Langsung jalan |
-| Write | `create_file`, `patch_file` | Tanya; boleh "always" untuk sesi ini (hanya di terminal) |
+| Write | `create_file`, `patch_file` | Tanya; boleh "always" untuk sesi ini (hanya di TUI dan Cli) |
 | Destructive | menimpa file, `delete_file`, `close_app`, `close_window` | Selalu tanya, **tanpa "always"** |
 | Execute | `open_url`, `open_app` | Selalu tanya, **tanpa "always"** |
 | Privileged | (belum ada tool) | Selalu tanya, tanpa "always" |
 | Exfiltrate | `send_file` dari Telegram | Selalu tanya, **tanpa "always"**; dari Telegram butuh kode TOTP |
+
+Di TUI, pertanyaan izin tampil sebagai kotak dialog; di CLI sebagai prompt `[y]a sekali / [a]lways / [n]o`. Keduanya memakai aturan yang sama: tanpa jawaban atau program ditutup = ditolak.
 
 Aturan keras: kebijakan `allow` untuk Destructive/Execute/Privileged dipaksa menjadi `ask`. Tanpa jawaban, EOF, atau error berarti **ditolak**.
 
@@ -332,6 +368,7 @@ API pencarian tidak punya format standar (metode, header, dan nama field beda ti
 Jika `log_file` diisi, Luna menulis satu baris per kejadian:
 
 ```
+2026-11-17 08:30:01 INFO  [app] start mode=tui backend=openai model=... history=12
 2026-11-17 08:34:53 INFO  [llm] chat round=0 ms=812 tool_calls=1
 2026-11-17 08:34:54 INFO  [tool] get_time selesai wait_ms=0 ms=0 hasil_chars=19
 2026-11-17 08:35:10 WARN  [tool] open_url ditolak wait_ms=4210
@@ -432,6 +469,7 @@ luna/
     │   └── builtin/        satu file per tool
     ├── telegram/           client, prompter, loop, file_sink
     ├── auth/               TotpVerifier
+    ├── tui/                TuiApp (layar chat), TuiPrompter (kotak izin)
     └── utils/              http (post, post_multipart, get), config, string, process
 ```
 
@@ -481,6 +519,12 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 | `Gagal start: log_level harus ...` | Nilai `log_level` salah ketik |
 | Luna gagal terhubung ke Ollama | Pastikan servis Ollama hidup: `curl http://localhost:11434/api/tags` |
 | Model lokal lambat dan CPU panas | Cek `ollama ps`; jika bukan `100% GPU`, model terlalu besar untuk VRAM atau driver CUDA tidak terbaca |
+| `TUI butuh terminal interaktif` | Input atau output bukan terminal (pipe, service). Pakai `--cli` |
+| Terminal berantakan setelah Luna ditutup paksa | Jalankan `reset` |
+| Tidak ada peringatan atau error di layar | Di TUI `stderr` disembunyikan; lihat `luna.log` |
+| Enter tidak berfungsi | Luna sedang menjawab, atau kotak izin sedang terbuka |
+| Karakter aneh atau kotak-kotak | Terminal atau font tidak mendukung UTF-8 |
+| `Argumen tidak dikenal` | Argumen kedua bukan `--cli` atau `--telegram` |
 
 ---
 
@@ -499,6 +543,9 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - Cuaca hanya dalam satuan metrik (°C, km/j).
 - Belum ada tes otomatis.
 - Log belum mencatat permintaan izin dan percobaan kode TOTP.
+- TUI belum mendukung gulir ke riwayat lama (layar mengikuti pesan terbaru), riwayat input dengan panah atas, dan streaming balasan.
+- Aktivitas tool (nama, durasi) belum tampil di layar chat; lihat `luna.log`.
+- Menutup TUI saat panggilan LLM berjalan menunggu panggilan itu selesai.
 
 ## Roadmap
 
@@ -510,6 +557,9 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - [x] `HttpClient::get`, lalu `search_web`, `fetch_url`, `weather`
 - [x] Backend lokal (Ollama)
 - [x] Log ke file
+- [x] Antarmuka TUI (FTXUI), CLI tetap tersedia lewat `--cli`
+- [ ] TUI: gulir riwayat, riwayat input, aktivitas tool di layar
+- [ ] Streaming balasan
 - [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`
 - [ ] `open_url` dengan pilihan browser dan jendela baru
 - [ ] Tes otomatis (target CMake) dan CI
@@ -526,3 +576,4 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - File yang dikirim lewat Telegram tersimpan di server Telegram (bot tidak end-to-end encrypted). Jangan kirim dokumen yang sangat sensitif.
 - Log hanya memuat metadata (ID pengirim, panjang pesan, nama tool, durasi), bukan isi percakapan. Tetap anggap `luna.log` sebagai data pribadi: jangan di-commit (`*.log` ada di `.gitignore`).
 - Dengan Ollama, pesan diproses di laptopmu dan tidak dikirim ke provider LLM cloud (Telegram, `search_web`, dan `weather` tetap memakai layanan masing-masing).
+- Teks dari model (termasuk hasil pencarian web) dibersihkan dari karakter kontrol sebelum ditampilkan di TUI, sehingga tidak bisa mengirim escape sequence ke terminal.
