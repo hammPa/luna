@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.0.0**
+**Versi saat ini: 1.1.0**
 
 | Versi | Isi |
 |---|---|
@@ -16,6 +16,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 | 0.8 | Akses web: `HttpClient::get`, `weather` (Open-Meteo), `search_web` dengan provider pencarian yang bisa diganti (`SearchProvider`, saat ini Tavily) |
 | 0.9 | Log ke file (rotasi, tanpa isi pesan) dan dokumentasi model lokal lewat Ollama |
 | 1.0 | Antarmuka TUI (FTXUI) menggantikan CLI sebagai mode bawaan; CLI tetap ada lewat `--cli` |
+| 1.1 | TUI: tema, gulir riwayat, menu perintah `/`; struktur `tools/builtin/` per kategori |
 
 ---
 
@@ -227,11 +228,18 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 
 Layar terdiri dari header (backend, model, jumlah tool), area chat yang otomatis mengikuti pesan terbaru, kotak input, dan bilah petunjuk.
 
+### Kontrol
+
 | Tombol | Fungsi |
 |---|---|
-| Enter | Kirim pesan atau perintah `/...` |
-| `exit` atau `quit` | Keluar |
-| Ctrl+C | Keluar |
+| Enter | kirim pesan |
+| `/` | buka menu perintah (↑/↓ pilih, Tab atau Enter melengkapi, Esc batal) |
+| PageUp / PageDown | gulir riwayat chat |
+| Roda mouse | gulir riwayat chat |
+| Ctrl+C, `exit`, `/exit` | keluar |
+
+Saat menggulir ke atas, balasan baru tidak menarik tampilan ke bawah; bilah bawah
+menunjukkan jumlah baris di bawah. Mengirim pesan kembali ke bagian terbawah.
 
 Saat sebuah tool butuh izin, muncul kotak di tengah layar:
 
@@ -466,7 +474,12 @@ luna/
     ├── memory/             Memory (SQLite: messages, facts)
     ├── search/             SearchProvider, TavilyProvider, search_factory
     ├── tools/              Tool, ToolRegistry, PermissionGate, PathGuard, Prompter, FileSink, FileBlocklist
-    │   └── builtin/        satu file per tool
+    │   └── builtin/
+    │       ├── files/    list_dir, read_file, create_file, patch_file, write_file,
+    │       │             delete_file, search_files, send_file
+    │       ├── system/   get_time, open_url, open_app, close_app
+    │       ├── window/   switch_workspace, list_windows, focus_window, close_window
+    │       └── web/      weather, search_web
     ├── telegram/           client, prompter, loop, file_sink
     ├── auth/               TotpVerifier
     ├── tui/                TuiApp (layar chat), TuiPrompter (kotak izin)
@@ -480,8 +493,9 @@ Aturan dependensi: `llm/` tidak mengenal `memory/`, `tools/`, atau `telegram/`. 
 
 ## Menambah tool baru
 
-1. Buat class turunan `Tool` di `src/tools/builtin/` dengan `name`, `description`, `parameters` (JSON schema), `risk(args)`, `describe(args)`, dan `execute(args)`.
-2. Daftarkan di `main.cpp`: `registry->add(std::make_unique<NamaTool>(...))`. Untuk tool yang butuh program luar, daftarkan hanya jika programnya ada.
+1. Buat class turunan `Tool` dan letakkan di `src/tools/builtin/<kategori>/` dengan `name`, `description`, `parameters` (JSON schema), `risk(args)`, `describe(args)`, dan `execute(args)`.
+2. Include di `builtin_tools.hpp`
+3. Daftarkan di `main.cpp`: `registry->add(std::make_unique<NamaTool>(...))`. Untuk tool yang butuh program luar, daftarkan hanya jika programnya ada.
 
 Daftar tool di system prompt dan schema untuk model dibuat otomatis dari registry. Gate permission otomatis berlaku. Argumen dari model tidak tepercaya: validasi dengan `arg_string`, dan pakai `PathGuard` untuk semua path.
 
@@ -543,7 +557,7 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - Cuaca hanya dalam satuan metrik (°C, km/j).
 - Belum ada tes otomatis.
 - Log belum mencatat permintaan izin dan percobaan kode TOTP.
-- TUI belum mendukung gulir ke riwayat lama (layar mengikuti pesan terbaru), riwayat input dengan panah atas, dan streaming balasan.
+- TUI belum mendukung riwayat input dengan panah atas, dan streaming balasan.
 - Aktivitas tool (nama, durasi) belum tampil di layar chat; lihat `luna.log`.
 - Menutup TUI saat panggilan LLM berjalan menunggu panggilan itu selesai.
 
@@ -558,6 +572,7 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - [x] Backend lokal (Ollama)
 - [x] Log ke file
 - [x] Antarmuka TUI (FTXUI), CLI tetap tersedia lewat `--cli`
+- [x] TUI: gulir riwayat.
 - [ ] TUI: gulir riwayat, riwayat input, aktivitas tool di layar
 - [ ] Streaming balasan
 - [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`

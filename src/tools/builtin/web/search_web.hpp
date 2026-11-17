@@ -4,8 +4,8 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-#include "../tool.hpp"
-#include "../../search/search_provider.hpp"
+#include "tools/tool.hpp"
+#include "search/search_provider.hpp"
 
 class SearchWebTool : public Tool {
 public:
