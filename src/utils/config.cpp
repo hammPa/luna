@@ -1,4 +1,5 @@
 #include "utils/config.hpp"
+#include "utils/log.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -80,6 +81,14 @@ Config load_config(const std::string& path) {
             }
         }
         cfg.default_location = j.value("default_location", cfg.default_location);
+
+        cfg.log_file  = j.value("log_file", cfg.log_file);
+        cfg.log_level = j.value("log_level", cfg.log_level);
+        (void)parse_log_level(cfg.log_level);   // validasi; melempar runtime_error jika salah
+        cfg.log_max_kb = j.value("log_max_kb", cfg.log_max_kb);
+        if (cfg.log_max_kb < 64 || cfg.log_max_kb > 102400) {
+            throw std::runtime_error("log_max_kb harus 64 sampai 102400");
+        }
     } catch (const json::exception& e) {
         // misalnya "model" berisi angka, bukan string
         throw std::runtime_error("Tipe field config salah: " + std::string(e.what()));

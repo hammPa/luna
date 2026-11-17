@@ -1,5 +1,7 @@
 #include "tools/tool_registry.hpp"
+#include "utils/log.hpp"
 
+#include <chrono>
 #include <stdexcept>
 #include <utility>
 
@@ -31,17 +33,40 @@ nlohmann::json ToolRegistry::schema() const {
 std::string ToolRegistry::run(const std::string& name, const nlohmann::json& args) {
     auto it = tools_.find(name);
     if (it == tools_.end()) {
+        logger::warn("tool", "tool tidak ada: " + name);
         return "Error: tool '" + name + "' tidak ada.";
     }
     Tool& tool = *it->second;
 
+    using clock = std::chrono::steady_clock;
+    auto ms_since = [](clock::time_point t) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t).count();
+    };
+
     try {
+        const auto t_gate = clock::now();
         GateResult g = gate_.check(tool, args);
+        const auto wait_ms = ms_since(t_gate);   // termasuk waktu menunggu persetujuan
+
         if (!g.allowed) {
+            logger::warn("tool", name + " ditolak wait_ms=" + std::to_string(wait_ms));
             return g.reason;
         }
-        return tool.execute(args);
+
+        const auto t_run = clock::now();
+        std::string result = tool.execute(args);
+
+        // Tool melaporkan kegagalan sebagai teks "Error...", bukan exception.
+        const bool failed = result.rfind("Error", 0) == 0;
+        const std::string line = name + (failed ? " gagal" : " selesai") +
+                                 " wait_ms=" + std::to_string(wait_ms) +
+                                 " ms=" + std::to_string(ms_since(t_run)) +
+                                 " hasil_chars=" + std::to_string(result.size());
+        if (failed) logger::warn("tool", line);
+        else logger::info("tool", line);
+        return result;
     } catch (const std::exception& e) {
+        logger::error("tool", name + " exception: " + e.what());
         return std::string("Error saat menjalankan ") + name + ": " + e.what();
     }
 }

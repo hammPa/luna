@@ -32,6 +32,7 @@ add_executable(luna
     src/auth/totp.cpp
     src/search/tavily_provider.cpp
     src/search/search_factory.cpp
+    src/utils/log.cpp
 )
 
 target_include_directories(luna PRIVATE

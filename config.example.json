@@ -37,5 +37,9 @@
         "api_key_env": "TAVILY_API_KEY",
         "base_url": "",
         "max_results": 5
-    }
+    },
+
+    "log_file": "/home/USER/luna-data/luna.log",
+    "log_level": "info",
+    "log_max_kb": 1024
 }

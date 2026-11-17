@@ -1,4 +1,6 @@
 #include "app/chat_session.hpp"
+#include "utils/log.hpp"
+#include <chrono>
 
 #include <iostream>
 #include <utility>
@@ -72,7 +74,13 @@ std::string ChatSession::send(const std::string& user_text) {
 
     try {
         for (int round = 0; round < kMaxToolRounds; ++round) {
+            const auto t0 = std::chrono::steady_clock::now();
             LLMResponse r = backend_.chat(history_, tools_.schema());
+            const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::steady_clock::now() - t0).count();
+            logger::info("llm", "chat round=" + std::to_string(round) +
+                                " ms=" + std::to_string(ms) +
+                                " tool_calls=" + std::to_string(r.toolcalls.size()));
 
             if (!r.wants_toolcall()) {
                 history_.push_back(make_msg("assistant", r.text));
@@ -93,13 +101,18 @@ std::string ChatSession::send(const std::string& user_text) {
                 history_.push_back(std::move(t));
             }
         }
+    } catch (const std::exception& e) {
+        logger::error("llm", e.what());
+        history_.resize(start);
+        throw;
     } catch (...) {
-        history_.resize(start);  // buang semua pesan giliran ini
+        history_.resize(start);
         throw;
     }
 
     // Putaran habis tanpa jawaban akhir.
     history_.resize(start);
+    logger::warn("llm", "putaran tool habis tanpa jawaban akhir");
     throw std::runtime_error("Terlalu banyak langkah tool (maks " +
                              std::to_string(kMaxToolRounds) + "), dibatalkan.");
 }

@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 0.8.0 (pra-rilis, dalam pengembangan)**
+**Versi saat ini: 0.9.0 (pra-rilis, dalam pengembangan)**
 
 | Versi | Isi |
 |---|---|
@@ -14,19 +14,21 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux. Luna bisa ngo
 | 0.6 | Kontrol jendela Hyprland (`list_windows`, `focus_window`, `close_window`), `close_app` melaporkan hasil sebenarnya |
 | 0.7 | `search_files`, `send_file` (unggah file ke Telegram dengan persetujuan TOTP), tingkat risiko `Exfiltrate`, upload multipart |
 | 0.8 | Akses web: `HttpClient::get`, `weather` (Open-Meteo), `search_web` dengan provider pencarian yang bisa diganti (`SearchProvider`, saat ini Tavily) |
+| 0.9 | Log ke file (rotasi, tanpa isi pesan) dan dokumentasi model lokal lewat Ollama |
 
 ---
 
 ## Fitur
 
 - **Chat teks** di terminal, dengan riwayat percakapan.
-- **Backend AI agnostik**: semua provider yang kompatibel dengan OpenAI API (OpenAI, Mistral, Groq, DeepSeek, OpenRouter, atau router seperti 9router). Ganti model/provider cukup edit `config.json`, tanpa rebuild.
+- **Backend AI agnostik**: semua provider yang kompatibel dengan OpenAI API (OpenAI, Mistral, Groq, DeepSeek, OpenRouter, router seperti 9router) dan model lokal lewat Ollama. Ganti model/provider cukup edit `config.json`, tanpa rebuild.
 - **Memori jangka panjang** (SQLite): riwayat chat dan fakta permanen tentangmu.
 - **Tool calling**: model memanggil tool yang kamu daftarkan.
 - **Permission gate**: setiap tool punya tingkat risiko; yang berisiko ditanyakan dulu.
 - **Kontrol desktop Hyprland**: pindah workspace, lihat jendela yang terbuka, pindah fokus, dan tutup satu jendela atau seluruh aplikasi.
 - **Mode Telegram**: kendalikan Luna dari HP dengan allowlist user, persetujuan y/n, dan kode TOTP untuk aksi berbahaya. Mendukung reverse proxy.
 - **Cuaca dan pencarian web**: `weather` (tanpa API key) dan `search_web` lewat provider yang bisa diganti. Hasil web ditandai sebagai data tak tepercaya.
+- **Log ke file**: riwayat aktivitas (panggilan LLM, aksi tool, aktivitas Telegram) tersimpan sebagai metadata, tanpa isi pesan.
 
 ---
 
@@ -133,7 +135,11 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
         "api_key_env": "TAVILY_API_KEY",
         "base_url": "",
         "max_results": 5
-    }
+    },
+
+    "log_file": "/home/USER/luna-data/luna.log",
+    "log_level": "info",
+    "log_max_kb": 1024
 }
 ```
 
@@ -160,6 +166,9 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `search.api_key_env` | **Nama** env var berisi API key pencarian. Jika env-nya kosong, `search_web` dimatikan (log `[search] ... dimatikan`) |
 | `search.base_url` | Kosong = alamat bawaan provider. Jika diisi harus `https://` |
 | `search.max_results` | Jumlah hasil pencarian, 1 sampai 10. Default 5 |
+| `log_file` | Path file log (pakai path absolut). **Kosong = tidak ada file log**; WARN dan ERROR tetap tampil di stderr |
+| `log_level` | `debug`, `info`, `warn`, atau `error`. Default `info`. Menentukan level minimum yang ditulis ke file |
+| `log_max_kb` | Ukuran maksimum file log (64 sampai 102400, default 1024). Saat penuh, file diganti nama menjadi `<log_file>.1` (satu cadangan, cadangan lama ditimpa) |
 
 Contoh provider:
 
@@ -169,7 +178,28 @@ Contoh provider:
 | OpenAI | `https://api.openai.com/v1` |
 | Groq | `https://api.groq.com/openai/v1` |
 | OpenRouter | `https://openrouter.ai/api/v1` |
+| Ollama (lokal) | `http://localhost:11434/v1` |
 
+### Model lokal dengan Ollama
+
+Ollama menyediakan endpoint OpenAI-compatible, jadi tidak butuh kode tambahan. Contoh jika menggunakan ollama:
+
+```json
+"base_url": "http://localhost:11434/v1",
+"model": "qwen2.5:3b",
+"api_key_env": "LUNA_DUMMY_KEY",
+"timeout_sec": 180,
+"history_limit": 8
+```
+
+```bash
+ollama pull qwen2.5:3b
+export LUNA_DUMMY_KEY=ollama     # nilainya bebas, tetapi env var harus terisi
+./luna ../config.ollama.json
+```
+
+- `ollama ps` menunjukkan apakah model berjalan di GPU (kolom `PROCESSOR`).
+- Model kecil lebih lambat dan kurang andal memanggil tool dibanding model cloud.
 ---
 
 ## Menjalankan
@@ -294,6 +324,26 @@ Menambah provider baru:
 3. Daftarkan `.cpp` di `CMakeLists.txt`.
 
 API pencarian tidak punya format standar (metode, header, dan nama field beda tiap penyedia), jadi tiap provider ditulis sendiri. `SearchWebTool` tidak berubah.
+
+---
+
+## Log
+
+Jika `log_file` diisi, Luna menulis satu baris per kejadian:
+
+```
+2026-11-17 08:34:53 INFO  [llm] chat round=0 ms=812 tool_calls=1
+2026-11-17 08:34:54 INFO  [tool] get_time selesai wait_ms=0 ms=0 hasil_chars=19
+2026-11-17 08:35:10 WARN  [tool] open_url ditolak wait_ms=4210
+```
+
+Yang dicatat: mulai dan berhenti, daftar tool aktif, panggilan LLM (durasi, jumlah tool call), aksi tool (nama, selesai/gagal/ditolak, durasi, panjang hasil), dan aktivitas Telegram (ID pengirim dan panjang pesan, pengguna asing, polling gagal dan pulih).
+
+Yang **tidak pernah** dicatat: isi pesan, argumen dan isi hasil tool, API key, token, dan kode TOTP.
+
+Pesan dibersihkan sebelum ditulis (satu baris, tanpa karakter kontrol, maksimal 500 karakter), sehingga teks dari model atau pengguna tidak bisa memalsukan baris log. File dibuat dengan izin `0600`. Jika file log tidak bisa dibuka, Luna tetap jalan dan hanya mengeluarkan peringatan.
+
+Memantau: `tail -f /path/ke/luna.log`
 
 ---
 
@@ -427,13 +477,17 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 | `pencarian gagal: Tavily HTTP 429` | Kuota atau batas laju provider habis |
 | `weather`: "Kota ... tidak ditemukan" | Nama kota tidak dikenali geocoding; coba nama lain atau tambah negara |
 | `weather`: "kota tidak diberikan" | Tidak menyebut kota dan `default_location` kosong |
+| File log tidak terbentuk | `log_file` kosong, atau foldernya tidak ada / tidak bisa ditulis (cari peringatan di stderr) |
+| `Gagal start: log_level harus ...` | Nilai `log_level` salah ketik |
+| Luna gagal terhubung ke Ollama | Pastikan servis Ollama hidup: `curl http://localhost:11434/api/tags` |
+| Model lokal lambat dan CPU panas | Cek `ollama ps`; jika bukan `100% GPU`, model terlalu besar untuk VRAM atau driver CUDA tidak terbaca |
 
 ---
 
 ## Keterbatasan saat ini
 
 - Hanya Linux; tool jendela hanya untuk Hyprland.
-- Backend lokal (Ollama/llama.cpp) belum ada; semua lewat API.
+- Backend lokal hanya lewat Ollama (HTTP).
 - Luna **reaktif**: hanya bertindak saat ada perintah. Belum ada tugas terjadwal, pengingat, atau pemicu otomatis, dan belum bisa menghubungimu duluan.
 - Belum berjalan sebagai service latar belakang.
 - `list_windows` mengirim judul jendela (termasuk judul tab browser) ke provider LLM. Pertimbangkan itu jika judulnya sensitif.
@@ -444,6 +498,7 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - Hanya satu provider pencarian (Tavily) yang tersedia.
 - Cuaca hanya dalam satuan metrik (°C, km/j).
 - Belum ada tes otomatis.
+- Log belum mencatat permintaan izin dan percobaan kode TOTP.
 
 ## Roadmap
 
@@ -453,13 +508,14 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - [x] Kontrol jendela: `list_windows`, `focus_window`, `close_window`
 - [x] `search_files` dan `send_file` (kirim file ke Telegram)
 - [x] `HttpClient::get`, lalu `search_web`, `fetch_url`, `weather`
+- [x] Backend lokal (Ollama)
+- [x] Log ke file
 - [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`
 - [ ] `open_url` dengan pilihan browser dan jendela baru
 - [ ] Tes otomatis (target CMake) dan CI
 - [ ] Service systemd, pengingat, dan tugas terjadwal
 - [ ] Sudo dengan allowlist perintah
 - [ ] Voice note Telegram dan input suara (STT/TTS di luar inti Luna)
-- [ ] Backend lokal (Ollama, llama.cpp)
 
 ## Keamanan dan privasi
 
@@ -468,3 +524,5 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - Kata kunci pencarian dikirim ke provider pencarian (Tavily); nama kota untuk `weather` dikirim ke Open-Meteo. Hindari menaruh data pribadi di kata kunci.
 - Perlakukan token bot dan secret TOTP seperti password. Jika bocor: `/revoke` di BotFather, dan buat secret TOTP baru.
 - File yang dikirim lewat Telegram tersimpan di server Telegram (bot tidak end-to-end encrypted). Jangan kirim dokumen yang sangat sensitif.
+- Log hanya memuat metadata (ID pengirim, panjang pesan, nama tool, durasi), bukan isi percakapan. Tetap anggap `luna.log` sebagai data pribadi: jangan di-commit (`*.log` ada di `.gitignore`).
+- Dengan Ollama, pesan diproses di laptopmu dan tidak dikirim ke provider LLM cloud (Telegram, `search_web`, dan `weather` tetap memakai layanan masing-masing).

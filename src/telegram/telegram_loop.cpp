@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "auth/totp.hpp"
+#include "utils/log.hpp"
 #include <memory>
 
 namespace {
@@ -58,22 +59,34 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
         std::cout << "TOTP tidak aktif: aksi Destructive/Privileged ditolak dari Telegram.\n";
     }
 
+    logger::info("telegram", "aktif users=" + std::to_string(cfg.telegram_allowed_users.size()) +
+                         " totp=" + (verifier ? "on" : "off"));
+
     // Buang pesan yang menumpuk saat Luna mati, supaya tidak dieksekusi mendadak.
     try {
         tg.skip_backlog(offset);
     } catch (const std::exception& e) {
-        std::cerr << "Peringatan: gagal membuang pesan lama: " << e.what() << '\n';
+        // std::cerr << "Peringatan: gagal membuang pesan lama: " << e.what() << '\n';
+        logger::warn("telegram", std::string("gagal membuang pesan lama: ") + e.what());
     }
 
     std::cout << "Mode Telegram aktif (" << cfg.telegram_allowed_users.size()
               << " user diizinkan). Ctrl+C untuk berhenti.\n";
 
+    bool poll_failing = false;
     while (true) {
         std::vector<TelegramUpdate> updates;
         try {
             updates = tg.get_updates(offset);
+            if (poll_failing) {
+                poll_failing = false;
+                logger::info("telegram", "polling pulih");
+            }
         } catch (const std::exception& e) {
-            std::cerr << "Polling gagal: " << e.what() << " (coba lagi 5 detik)\n";
+            if (!poll_failing) {
+                poll_failing = true;
+                logger::warn("telegram", std::string("polling gagal: ") + e.what());
+            }
             sleep(5);
             continue;
         }
@@ -81,11 +94,13 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
         for (const auto& u : updates) {
             // Orang asing diabaikan diam-diam (tidak dibalas).
             if (!is_allowed(cfg, u.user_id)) {
-                std::cerr << "[telegram] diabaikan: user " << u.user_id << '\n';
+                // std::cerr << "[telegram] diabaikan: user " << u.user_id << '\n';
+                logger::warn("telegram", "diabaikan user=" + std::to_string(u.user_id));
                 continue;
             }
 
             if (u.text.size() > kMaxInputChars) {
+                logger::warn("telegram", "pesan terlalu panjang chars=" + std::to_string(u.text.size()));
                 try {
                     tg.send_message(u.chat_id,
                                     "Pesan terlalu panjang (maks " +
@@ -96,8 +111,10 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
             }
 
             // Log hanya panjang, bukan isi, supaya terminal tidak menyimpan chat pribadi.
-            std::cerr << "[telegram] pesan dari " << u.user_id << " ("
-                      << u.text.size() << " karakter)\n";
+            // std::cerr << "[telegram] pesan dari " << u.user_id << " ("
+            //           << u.text.size() << " karakter)\n";
+            logger::info("telegram", "pesan user=" + std::to_string(u.user_id) +
+                         " chars=" + std::to_string(u.text.size()));
 
             // Indikator mengetik; gagal di sini tidak penting.
             try {
@@ -134,7 +151,8 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
             try {
                 tg.send_message(u.chat_id, reply);
             } catch (const std::exception& e) {
-                std::cerr << "Gagal kirim balasan: " << e.what() << '\n';
+                // std::cerr << "Gagal kirim balasan: " << e.what() << '\n';
+                logger::error("telegram", std::string("gagal kirim balasan: ") + e.what());
             }
         }
     }

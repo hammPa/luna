@@ -36,6 +36,10 @@ struct Config {
     std::string search_base_url;
     int search_max_results = 5;
     std::string default_location;      // kota default untuk weather
+
+    std::string log_file;                 // kosong = tanpa file log
+    std::string log_level = "info";       // debug | info | warn | error
+    int log_max_kb = 1024;
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

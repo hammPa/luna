@@ -16,6 +16,7 @@
 
 #include "telegram/telegram_file_sink.hpp"
 #include "search/search_factory.hpp"
+#include "utils/log.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -93,6 +94,10 @@ int main(int argc, char** argv) {
 
     try {
         cfg = load_config(config_path);
+        logger::init(cfg.log_file, parse_log_level(cfg.log_level),
+             static_cast<std::size_t>(cfg.log_max_kb) * 1024);
+        
+        
         backend = create_backend(cfg);
         memory = std::make_unique<Memory>(cfg.memory_db);
         search_provider = make_search_provider(cfg);
@@ -105,10 +110,21 @@ int main(int argc, char** argv) {
         session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
         session->load();
 
+        std::string tool_names;
+        for (const auto& t : registry->schema()) {
+            if (!tool_names.empty()) tool_names += ",";
+            tool_names += t.value("name", "?");
+        }
+        logger::info("app", std::string("start mode=") + (telegram_mode ? "telegram" : "terminal") +
+                            " backend=" + backend->name() + " model=" + cfg.model +
+                            " history=" + std::to_string(session->history_size()));
+        logger::info("app", "tools=" + tool_names);
+
         std::cerr << "allowed_dirs=" << cfg.allowed_dirs.size()
           << " tools=" << registry->schema().size() << '\n';
     } catch (const std::exception& e) {
-        std::cerr << "Gagal start: " << e.what() << '\n';
+        // std::cerr << "Gagal start: " << e.what() << '\n';
+        logger::error("app", std::string("Gagal start: ") + e.what());
         return 1;
     }
 
@@ -116,7 +132,8 @@ int main(int argc, char** argv) {
         try {
             run_telegram(cfg, *session, *memory, telegram_prompter, telegram_sink);
         } catch (const std::exception& e) {
-            std::cerr << "Gagal: " << e.what() << '\n';
+            // std::cerr << "Gagal: " << e.what() << '\n';
+            logger::error("app", std::string("Gagal: ") + e.what());
             return 1;
         }
         return 0;
@@ -141,7 +158,8 @@ int main(int argc, char** argv) {
             std::cerr << "Error: " << e.what() << '\n';
         }
     }
-
+    
+    logger::info("app", "berhenti");
     std::cout << "Sampai jumpa.\n";
     return 0;
 }
