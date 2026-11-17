@@ -15,6 +15,7 @@
 #include "telegram/telegram_prompter.hpp"
 
 #include "telegram/telegram_file_sink.hpp"
+#include "search/search_factory.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -22,7 +23,8 @@
 #include <string>
 
 void register_tools(ToolRegistry& registry, const Config& cfg,
-                    std::unique_ptr<PathGuard>& guard, FileSink& file_sink, bool telegram_mode) {
+                    std::unique_ptr<PathGuard>& guard, FileSink& file_sink,
+                    SearchProvider* search, bool telegram_mode) {
     registry.add(std::make_unique<GetTimeTool>());
     registry.add(std::make_unique<OpenUrlTool>());
         
@@ -55,6 +57,11 @@ void register_tools(ToolRegistry& registry, const Config& cfg,
         registry.add(std::make_unique<SendFileTool>(
             *guard, file_sink, static_cast<std::uintmax_t>(cfg.max_send_mb) * 1024 * 1024));
     }
+
+    registry.add(std::make_unique<WeatherTool>(cfg.default_location, 15L));
+    if (search) {
+        registry.add(std::make_unique<SearchWebTool>(*search, cfg.search_max_results));
+    }
 }
 
 int main(int argc, char** argv) {
@@ -77,6 +84,8 @@ int main(int argc, char** argv) {
     FileSink& file_sink = telegram_mode ? static_cast<FileSink&>(telegram_sink)
                                         : static_cast<FileSink&>(terminal_sink);
 
+    std::unique_ptr<SearchProvider> search_provider;
+
     std::unique_ptr<PathGuard> guard;
     std::unique_ptr<PermissionGate> gate;
     std::unique_ptr<ToolRegistry> registry;
@@ -86,11 +95,12 @@ int main(int argc, char** argv) {
         cfg = load_config(config_path);
         backend = create_backend(cfg);
         memory = std::make_unique<Memory>(cfg.memory_db);
+        search_provider = make_search_provider(cfg);
 
         gate = std::make_unique<PermissionGate>(make_policy(cfg.permissions), prompter);
         registry = std::make_unique<ToolRegistry>(*gate);
 
-        register_tools(*registry, cfg, guard, file_sink, telegram_mode);
+        register_tools(*registry, cfg, guard, file_sink, search_provider.get(), telegram_mode);
 
         session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
         session->load();

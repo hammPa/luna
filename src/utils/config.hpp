@@ -30,6 +30,12 @@ struct Config {
     std::string telegram_api_base_url = "https://api.telegram.org";
 
     int max_send_mb = 20;   // batas total ukuran file per pengiriman (1-50)
+
+    std::string search_provider;       // "" = mati
+    std::string search_api_key_env;
+    std::string search_base_url;
+    int search_max_results = 5;
+    std::string default_location;      // kota default untuk weather
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

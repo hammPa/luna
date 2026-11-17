@@ -15,3 +15,5 @@
 #include "tools/builtin/search_files.hpp"
 #include "tools/builtin/send_file.hpp"
 #include "tools/file_sink.hpp"
+#include "tools/builtin/weather.hpp"
+#include "tools/builtin/search_web.hpp"

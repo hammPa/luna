@@ -51,6 +51,23 @@ namespace {
         }
         return SlistHandle(raw);
     }
+
+    struct LimitedSink {
+        std::string* out;
+        std::size_t max;
+        bool truncated;
+    };
+
+    static size_t limitedWriteCallback(char* ptr, size_t size, size_t nmemb, void* userData) {
+        auto* s = static_cast<LimitedSink*>(userData);
+        const size_t total = size * nmemb;
+        if (s->out->size() + total > s->max) {
+            s->truncated = true;
+            return 0;   // hentikan unduhan
+        }
+        s->out->append(ptr, total);
+        return total;
+    }
 } // namespace
 
 HttpClient::HttpClient() { curl_global_init(CURL_GLOBAL_DEFAULT); }
@@ -149,4 +166,53 @@ HttpResponse HttpClient::post_multipart(const std::string& url,
     curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &res.statusCode);
     res.body = std::move(response_body);
     return res;
+}
+
+HttpResponse HttpClient::get(const std::string& url,
+                             const std::vector<std::string>& headers,
+                             long timeout_sec,
+                             std::size_t max_bytes) const {
+    // Redirect tidak diikuti (default libcurl), jadi host tetap yang kita tentukan.
+    if (url.rfind("https://", 0) != 0) {
+        throw std::runtime_error("Hanya URL https yang diizinkan.");
+    }
+
+    SlistHandle slist = build_headers(headers);
+    CurlHandle curl(curl_easy_init());
+    if (!curl) throw std::runtime_error("curl_easy_init gagal");
+    CURL* c = curl.get();
+
+    HttpResponse res;
+    LimitedSink sink{&res.body, max_bytes, false};
+
+    curl_easy_setopt(c, CURLOPT_URL, url.c_str());
+    if (slist) curl_easy_setopt(c, CURLOPT_HTTPHEADER, slist.get());
+    curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, 0L);
+    curl_easy_setopt(c, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(c, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(c, CURLOPT_USERAGENT, "luna/0.8");
+    curl_easy_setopt(c, CURLOPT_ACCEPT_ENCODING, "");
+    curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, limitedWriteCallback);
+    curl_easy_setopt(c, CURLOPT_WRITEDATA, &sink);
+    curl_easy_setopt(c, CURLOPT_TIMEOUT, timeout_sec);
+
+    CURLcode rc = curl_easy_perform(c);
+    // CURLE_WRITE_ERROR akibat kita sendiri menghentikan unduhan = bukan kegagalan.
+    if (rc != CURLE_OK && !(rc == CURLE_WRITE_ERROR && sink.truncated)) {
+        throw std::runtime_error(std::string("GET gagal: ") + curl_easy_strerror(rc));
+    }
+
+    curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &res.statusCode);
+    res.truncated = sink.truncated;
+    return res;
+}
+
+std::string HttpClient::url_encode(const std::string& s) {
+    CurlHandle curl(curl_easy_init());
+    if (!curl) throw std::runtime_error("curl_easy_init gagal");
+    char* e = curl_easy_escape(curl.get(), s.c_str(), static_cast<int>(s.size()));
+    if (!e) throw std::runtime_error("url_encode gagal");
+    std::string out(e);
+    curl_free(e);
+    return out;
 }

@@ -30,6 +30,8 @@ add_executable(luna
     src/telegram/telegram_prompter.cpp
     src/telegram/telegram_file_sink.cpp
     src/auth/totp.cpp
+    src/search/tavily_provider.cpp
+    src/search/search_factory.cpp
 )
 
 target_include_directories(luna PRIVATE

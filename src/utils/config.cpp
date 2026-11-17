@@ -67,6 +67,19 @@ Config load_config(const std::string& path) {
         if (cfg.max_send_mb < 1 || cfg.max_send_mb > 50) {
             throw std::runtime_error("max_send_mb harus 1 sampai 50 (batas bot Telegram 50 MB)");
         }
+
+        if (j.contains("search")) {
+            const auto& s = j.at("search");
+            if (!s.is_object()) throw std::runtime_error("'search' harus object");
+            cfg.search_provider    = s.value("provider", cfg.search_provider);
+            cfg.search_api_key_env = s.value("api_key_env", cfg.search_api_key_env);
+            cfg.search_base_url    = s.value("base_url", cfg.search_base_url);
+            cfg.search_max_results = s.value("max_results", cfg.search_max_results);
+            if (cfg.search_max_results < 1 || cfg.search_max_results > 10) {
+                throw std::runtime_error("search.max_results harus 1 sampai 10");
+            }
+        }
+        cfg.default_location = j.value("default_location", cfg.default_location);
     } catch (const json::exception& e) {
         // misalnya "model" berisi angka, bukan string
         throw std::runtime_error("Tipe field config salah: " + std::string(e.what()));

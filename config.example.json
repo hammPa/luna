@@ -29,5 +29,13 @@
     "telegram_allowed_users": [123456789],
     "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
     "telegram_api_base_url": "",
-    "max_send_mb": 20
+    "max_send_mb": 20,
+
+    "default_location": "Pekanbaru",
+    "search": {
+        "provider": "tavily",
+        "api_key_env": "TAVILY_API_KEY",
+        "base_url": "",
+        "max_results": 5
+    }
 }
