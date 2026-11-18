@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.1.0**
+**Versi saat ini: 1.2.0**
 
 | Versi | Isi |
 |---|---|
@@ -17,6 +17,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 | 0.9 | Log ke file (rotasi, tanpa isi pesan) dan dokumentasi model lokal lewat Ollama |
 | 1.0 | Antarmuka TUI (FTXUI) menggantikan CLI sebagai mode bawaan; CLI tetap ada lewat `--cli` |
 | 1.1 | TUI: tema, gulir riwayat, menu perintah `/`; struktur `tools/builtin/` per kategori |
+| 1.2 | Indikator konteks (TUI/CLI), `/ctx`, modularisasi TUI |
 
 ---
 
@@ -31,6 +32,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 - **Mode Telegram**: kendalikan Luna dari HP dengan allowlist user, persetujuan y/n, dan kode TOTP untuk aksi berbahaya. Mendukung reverse proxy.
 - **Cuaca dan pencarian web**: `weather` (tanpa API key) dan `search_web` lewat provider yang bisa diganti. Hasil web ditandai sebagai data tak tepercaya.
 - **Log ke file**: riwayat aktivitas (panggilan LLM, aksi tool, aktivitas Telegram) tersimpan sebagai metadata, tanpa isi pesan.
+- Indikator konteks: seberapa penuh percakapan terhadap `max_context`, di header TUI dan setelah tiap balasan di CLI
 
 ---
 
@@ -156,7 +158,7 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `api_key_env` | **Nama** env var yang berisi API key (bukan key-nya) |
 | `system_prompt` | Aturan umum Luna. Daftar tool dan fakta ditambahkan otomatis |
 | `history_limit` | Jumlah pesan riwayat yang dikirim (tanpa system prompt) |
-| `max_context` | Disiapkan untuk backend lokal, belum dipakai |
+| `max_context` | Batas konteks (token) untuk tampilan indikator. Samakan dengan konteks nyata model (mis. `num_ctx` Ollama). Belum dipakai untuk memangkas riwayat. |
 | `timeout_sec` | Batas waktu request HTTP |
 | `memory_db` | Path file SQLite. Relatif terhadap folder tempat Luna dijalankan, jadi pakai path absolut agar konsisten |
 | `allowed_dirs` | Folder yang boleh disentuh tool file. Entri pertama = workspace utama. **Kosong = tool file tidak aktif.** Pakai path lengkap (`~` tidak diperluas) |
@@ -266,9 +268,31 @@ Hal yang perlu diketahui:
 | `/facts` | Tampilkan semua fakta |
 | `/clear` | Hapus riwayat percakapan (RAM dan database). **Fakta tidak ikut terhapus** |
 | `/start`, `/help` | Bantuan singkat (Telegram) |
+| `/ctx` | tampilkan ukuran konteks yang terpakai |
 | `exit` / `quit` | Keluar (TUI dan CLI). Di CLI juga Ctrl+D; di TUI juga Ctrl+C |
 
 Fakta otomatis disisipkan ke system prompt di setiap giliran, jadi tidak terpotong oleh `history_limit`. `/clear` berguna kalau model mulai meniru jawaban lama yang sudah basi.
+
+## Indikator konteks
+
+Angka menunjukkan ukuran konteks pada panggilan LLM **terakhir**: system prompt, daftar
+tool, fakta, riwayat, dan hasil tool. Angka naik seiring percakapan, dan turun setelah
+`/clear` atau saat riwayat lama terpangkas oleh `history_limit`. Ini bukan total token
+yang ditagih provider.
+
+    ctx 1.2k / 4096 ▰▰▱▱▱
+
+| Warna | Terpakai |
+|---|---|
+| hijau | < 60% |
+| kuning | 60-85% |
+| merah | > 85% |
+
+Angka berawalan `~` adalah perkiraan (sekitar 3 byte per token), dipakai bila provider
+tidak mengirim `usage`.
+
+Luna belum memangkas riwayat berdasarkan token. Pemangkasan masih lewat `history_limit`,
+jadi hasil tool besar (mis. `read_file`) bisa menaikkan konteks tiba-tiba.
 
 ---
 
@@ -482,8 +506,9 @@ luna/
     │       └── web/      weather, search_web
     ├── telegram/           client, prompter, loop, file_sink
     ├── auth/               TotpVerifier
-    ├── tui/                TuiApp (layar chat), TuiPrompter (kotak izin)
-    └── utils/              http (post, post_multipart, get), config, string, process
+    ├── tui/                tui_app, tui_view, tui_events, tui_state, tui_render, tui_text,
+│               tui_prompter, theme, slash_menu
+    └── utils/              http (post, post_multipart, get), config, log, string_utils, process_utils, format_utils, ctx_format
 ```
 
 Aturan dependensi: `llm/` tidak mengenal `memory/`, `tools/`, atau `telegram/`. Format khusus provider hanya ada di `openai_backend.cpp`. Detail provider tidak boleh bocor ke `main.cpp`.
@@ -539,6 +564,9 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 | Enter tidak berfungsi | Luna sedang menjawab, atau kotak izin sedang terbuka |
 | Karakter aneh atau kotak-kotak | Terminal atau font tidak mendukung UTF-8 |
 | `Argumen tidak dikenal` | Argumen kedua bukan `--cli` atau `--telegram` |
+| Angka konteks berawalan `~` | Provider tidak mengirim `usage`, jadi angkanya perkiraan |
+| Persen konteks tidak masuk akal | `max_context` di config harus sama dengan konteks
+nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
 
 ---
 
@@ -560,6 +588,9 @@ Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.
 - TUI belum mendukung riwayat input dengan panah atas, dan streaming balasan.
 - Aktivitas tool (nama, durasi) belum tampil di layar chat; lihat `luna.log`.
 - Menutup TUI saat panggilan LLM berjalan menunggu panggilan itu selesai.
+- `max_context` hanya untuk tampilan; riwayat dipangkas berdasarkan jumlah pesan.
+- TUI belum punya riwayat input (panah atas), blok kode/markdown, streaming, dan salin otomatis.
+- Tool belum bisa dihidupkan/dimatikan saat berjalan.
 
 ## Roadmap
 
