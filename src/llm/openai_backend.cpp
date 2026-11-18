@@ -178,6 +178,16 @@ LLMResponse OpenAIBackend::chat(const std::vector<Message>& history,
             out.text = extract_text(msg["content"]);
         }
         out.toolcalls = parse_tool_calls(msg);
+
+        // token usage: OpenAI mengirim "usage" di level root, Mistral di level choices[0].
+        if (j.contains("usage") && j["usage"].is_object()) {
+            const json& u = j["usage"];
+            if (u.contains("prompt_tokens") && u["prompt_tokens"].is_number_integer()) {
+                const int p = u["prompt_tokens"].get<int>();
+                if (p > 0) out.prompt_tokens = p;   // 0 dianggap "tidak diketahui"
+            }
+        }
+
         return out;
     } catch (const json::exception& e) {
         throw std::runtime_error(std::string("Balasan tidak sesuai format: ") + e.what());

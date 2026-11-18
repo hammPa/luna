@@ -1,7 +1,7 @@
 #include "tui/tui_render.hpp"
-
 #include "tui/theme.hpp"
 #include "tui/tui_text.hpp"
+#include "utils/ctx_format.hpp"
 
 using namespace ftxui;
 
@@ -84,4 +84,74 @@ Element slash_menu_view(const std::vector<SlashCmd>& items, int selected) {
         rows.push_back(std::move(row));
     }
     return vbox(std::move(rows)) | borderRounded | color(theme::muted);
+}
+
+namespace {
+
+// Chip tombol di bilah petunjuk: " Enter " kirim
+Elements key_hint(const std::string& key, const std::string& desc) {
+    return {
+        text(" " + key + " ") | bold | color(theme::accent) | bgcolor(theme::input_bg),
+        text(" " + desc + "  ") | color(theme::muted),
+    };
+}
+
+}  // namespace
+
+Element hint_bar(int rows_below) {
+    if (rows_below > 0) {
+        return hbox({
+            text(" ↓ " + std::to_string(rows_below) + " baris di bawah ") | bold |
+                color(theme::dark) | bgcolor(theme::warn_c),
+            text("  PgDn turun · kirim pesan kembali ke bawah") | color(theme::muted),
+        });
+    }
+    Elements h;
+    for (auto& part : key_hint("Enter", "kirim")) h.push_back(std::move(part));
+    for (auto& part : key_hint("/", "perintah")) h.push_back(std::move(part));
+    for (auto& part : key_hint("PgUp/PgDn", "gulir")) h.push_back(std::move(part));
+    for (auto& part : key_hint("Ctrl+C", "keluar")) h.push_back(std::move(part));
+    return hbox(std::move(h));
+}
+
+Element header_bar(const std::string& status, int used, int max, bool estimated, bool busy) {
+    const int pct = ctx_fmt::percent(used, max);
+    const Color ctx_c = (pct < 0) ? theme::muted
+                        : (ctx_fmt::level(pct) == 0 ? theme::luna_c
+                        : ctx_fmt::level(pct) == 1 ? theme::warn_c : theme::error_c);
+    return hbox({
+        text(" ✦ Luna ") | bold | color(theme::dark) | bgcolor(theme::accent),
+        text("  " + status) | color(theme::muted),
+        filler(),
+        text(ctx_fmt::label(used, max, estimated) + " ") | color(ctx_c),
+        text(ctx_fmt::bar(pct) + "  ") | color(ctx_c),
+        busy ? (text("● bekerja ") | color(theme::warn_c))
+             : (text("● siap ") | color(theme::luna_c)),
+    });
+}
+
+Element busy_row(int frame) {
+    return hbox({
+        text(" luna ") | bold | color(theme::dark) | bgcolor(theme::luna_c),
+        text(" "),
+        spinner(2, static_cast<size_t>(frame)) | color(theme::accent),
+        text(" berpikir...") | color(theme::muted),
+    });
+}
+
+Element input_bar(Element input_el, bool busy) {
+    return hbox({text(" › ") | bold | color(theme::accent), std::move(input_el) | flex})
+           | borderRounded | color(busy ? theme::muted : theme::accent);
+}
+
+Element permission_box(const std::string& question, bool can_always) {
+    return vbox({
+               text(" Butuh izin ") | bold | color(theme::warn_c),
+               separator(),
+               paragraphs(tui_text::sanitize(question)),
+               separator(),
+               text(can_always ? "[y] sekali   [a] selalu sesi ini   [n] tolak"
+                               : "[y] sekali   [n] tolak") | bold,
+           }) | borderRounded | color(theme::warn_c) | size(WIDTH, LESS_THAN, 72) |
+           clear_under | center;
 }

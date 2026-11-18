@@ -1,6 +1,7 @@
 #include "app/commands.hpp"
 
 #include "utils/string_utils.hpp"
+#include "utils/ctx_format.hpp"
 
 #include <iostream>
 
@@ -51,6 +52,20 @@ void cmd_clear(ChatSession& session, std::ostream& out) {
     }
 }
 
+void cmd_ctx(const ChatSession& session, std::ostream& out) {
+    const int used = session.ctx_used();
+    if (used < 0) {
+        out << "Konteks: belum ada (kirim satu pesan dulu).\n\n";
+        return;
+    }
+    out << ctx_fmt::summary(used, session.ctx_max(), session.ctx_estimated()) << ' '
+        << ctx_fmt::bar(ctx_fmt::percent(used, session.ctx_max())) << '\n';
+    if (session.ctx_estimated()) {
+        out << "(~ = perkiraan, provider tidak mengirim usage)\n";
+    }
+    out << '\n';
+}
+
 }  // namespace
 
 bool handle_command(const std::string& line, Memory& memory, ChatSession& session,
@@ -72,5 +87,10 @@ bool handle_command(const std::string& line, Memory& memory, ChatSession& sessio
         cmd_clear(session, out);
         return true;
     }
+    if (line == "/ctx") {
+        cmd_ctx(session, out);
+        return true;
+    }
+
     return false;
 }

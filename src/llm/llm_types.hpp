@@ -29,6 +29,7 @@ inline Message make_msg(std::string role, std::string content) {
 struct LLMResponse {
     std::string text;
     std::vector<Toolcall> toolcalls;
+    int prompt_tokens = -1;   // -1 = provider tidak mengirim usage
 
     bool wants_toolcall() const {
         return !toolcalls.empty();

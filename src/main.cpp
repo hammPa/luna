@@ -21,6 +21,8 @@
 #include "tui/tui_app.hpp"
 #include "tui/tui_prompter.hpp"
 
+#include "utils/ctx_format.hpp"
+
 #include <unistd.h>
 
 #include <cstring>
@@ -205,7 +207,11 @@ int main(int argc, char** argv) {
         if (line[0] == '/' && handle_command(line, *memory, *session, std::cout)) continue;
 
         try {
-            std::cout << session->send(line) << "\n\n";
+            // std::cout << session->send(line) << "\n\n";
+            std::cout << session->send(line) << "\n";
+            std::cout << "\x1b[2m[" << ctx_fmt::summary(session->ctx_used(), session->ctx_max(),
+                                                        session->ctx_estimated())
+                      << "]\x1b[0m\n\n";
         } catch (const std::exception& e) {
             std::cerr << "Error: " << e.what() << '\n';
         }
