@@ -27,6 +27,10 @@ public:
     // Pesan panjang dipecah otomatis.
     void send_message(long long chat_id, const std::string& text);
 
+    // Balasan Luna: markdown diubah ke HTML Telegram, dipecah di batas blok.
+    // Bila Telegram menolak HTML (HTTP 400), potongan itu dikirim polos.
+    void send_markdown(long long chat_id, const std::string& text);
+
     // Tampilkan "sedang mengetik..." (hilang sendiri setelah ~5 detik).
     void send_chat_action(long long chat_id, const std::string& action = "typing");
 

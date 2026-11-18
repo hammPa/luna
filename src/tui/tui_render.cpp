@@ -1,6 +1,7 @@
 #include "tui/tui_render.hpp"
 #include "tui/theme.hpp"
 #include "tui/tui_text.hpp"
+#include "tui/tui_markdown.hpp"
 #include "utils/ctx_format.hpp"
 
 using namespace ftxui;
@@ -58,13 +59,23 @@ Elements line_rows(const Line& l) {
     if (l.role == "luna")  { label = "luna";  badge_c = theme::luna_c;  body_c = theme::fg; }
     if (l.role == "error") { label = "error"; badge_c = theme::error_c; body_c = theme::error_c; }
 
+    // Hanya balasan Luna yang dirender sebagai markdown; pesan user, info,
+    // dan error tetap polos supaya tidak berubah bentuk.
+    Elements body;
+    if (l.role == "luna") {
+        body = markdown_rows(l.text, body_c);
+    } else {
+        for (const auto& ln : tui_text::split_lines(l.text)) {
+            body.push_back(ln.empty() ? text("") : (paragraph(ln) | color(body_c)));
+        }
+    }
+
     Elements rows;
     bool first = true;
-    for (const auto& ln : tui_text::split_lines(l.text)) {
+    for (auto& b : body) {
         Element left = first ? badge(label, badge_c)
                              : (text("") | size(WIDTH, EQUAL, kBadgeCol));
-        Element body = ln.empty() ? text("") : (paragraph(ln) | color(body_c));
-        rows.push_back(hbox({std::move(left), std::move(body) | flex}));
+        rows.push_back(hbox({std::move(left), std::move(b) | flex}));
         first = false;
     }
     rows.push_back(text(""));   // jarak antar pesan

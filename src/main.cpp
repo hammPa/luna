@@ -22,6 +22,7 @@
 #include "tui/tui_prompter.hpp"
 
 #include "utils/ctx_format.hpp"
+#include "utils/markdown_ansi.hpp"
 
 #include <unistd.h>
 
@@ -208,7 +209,8 @@ int main(int argc, char** argv) {
 
         try {
             // std::cout << session->send(line) << "\n\n";
-            std::cout << session->send(line) << "\n";
+                        const std::string reply = session->send(line);
+            std::cout << (isatty(STDOUT_FILENO) ? md::to_ansi(reply) : reply) << "\n";
             std::cout << "\x1b[2m[" << ctx_fmt::summary(session->ctx_used(), session->ctx_max(),
                                                         session->ctx_estimated())
                       << "]\x1b[0m\n\n";

@@ -1,0 +1,102 @@
+# Konfigurasi
+
+## Konfigurasi
+
+### Environment variable (rahasia, jangan di-commit)
+
+| Variable | Fungsi |
+|---|---|
+| `NINE_ROUTER_API_KEY` | API key provider LLM (nama bisa diubah lewat `api_key_env`) |
+| `LUNA_ASSISTANT_BOT_TOKEN` | Token bot dari @BotFather (nama bisa diubah lewat `telegram_token_env`) |
+| `LUNA_TOTP_SECRET` | Secret TOTP base32 (opsional, untuk aksi berbahaya dari Telegram) |
+| `TAVILY_API_KEY` | API key pencarian web (opsional; nama bisa diubah lewat `search.api_key_env`) |
+
+Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
+
+### `config.json`
+
+```json
+{
+    "backend": "openai",
+    "model": "mistral/ministral-3b-latest",
+    "base_url": "https://hamm.up.railway.app/v1",
+    "api_key_env": "NINE_ROUTER_API_KEY",
+    "system_prompt": "Kamu Luna, asisten pribadi yang ramah dan to the point.",
+    "history_limit": 20,
+    "max_context": 4096,
+    "timeout_sec": 30,
+    "memory_db": "/home/USER/luna-data/memory.db",
+
+    "allowed_dirs": ["/home/USER/luna-workspace"],
+
+    "permissions": {
+        "safe": "allow",
+        "write": "ask",
+        "destructive": "ask",
+        "execute": "ask",
+        "privileged": "ask",
+        "exfiltrate": "ask",
+    },
+
+    "apps": {
+        "browser":  {"run": "firefox", "process": "firefox"},
+        "terminal": {"run": "gnome-terminal"},
+        "files":    {"run": "nautilus", "process": "nautilus"}
+    },
+
+    "telegram_allowed_users": [123456789],
+    "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
+    "telegram_api_base_url": "",
+
+    "max_send_mb": 20,
+
+    "default_location": "Pekanbaru",
+    "search": {
+        "provider": "tavily",
+        "api_key_env": "TAVILY_API_KEY",
+        "base_url": "",
+        "max_results": 5
+    },
+
+    "log_file": "/home/USER/luna-data/luna.log",
+    "log_level": "info",
+    "log_max_kb": 1024
+}
+```
+
+| Field | Arti |
+|---|---|
+| `backend` | Saat ini hanya `openai` (format OpenAI-compatible) |
+| `model` | Nama model sesuai provider |
+| `base_url` | URL dasar API, tanpa `/chat/completions` |
+| `api_key_env` | **Nama** env var yang berisi API key (bukan key-nya) |
+| `system_prompt` | Aturan umum Luna. Daftar tool dan fakta ditambahkan otomatis |
+| `history_limit` | Jumlah pesan riwayat yang dikirim (tanpa system prompt) |
+| `max_context` | Batas konteks (token) untuk tampilan indikator. Samakan dengan konteks nyata model (mis. `num_ctx` Ollama). Belum dipakai untuk memangkas riwayat. |
+| `timeout_sec` | Batas waktu request HTTP |
+| `memory_db` | Path file SQLite. Relatif terhadap folder tempat Luna dijalankan, jadi pakai path absolut agar konsisten |
+| `allowed_dirs` | Folder yang boleh disentuh tool file. Entri pertama = workspace utama. **Kosong = tool file tidak aktif.** Pakai path lengkap (`~` tidak diperluas) |
+| `permissions` | Kebijakan per tingkat risiko: `allow`, `ask`, `deny` |
+| `apps` | Allowlist aplikasi untuk `open_app` dan `close_app`. `run` = program untuk membuka, `process` = nama proses untuk menutup (tanpa `process` = tidak bisa ditutup). Tanpa spasi/argumen |
+| `telegram_allowed_users` | User ID numerik yang boleh memakai bot. **Kosong = mode Telegram menolak start** |
+| `telegram_token_env` | Nama env var token bot |
+| `telegram_api_base_url` | Base URL API Telegram. **Kosong = `https://api.telegram.org`.** Isi dengan URL reverse proxy bila jaringanmu tidak bisa menjangkau Telegram. Harus `https://` |
+| `max_send_mb` | Batas total ukuran file per pengiriman lewat `send_file`, 1 sampai 50 (batas bot Telegram 50 MB). Default 20 |
+| `default_location` | Kota default untuk `weather` jika model tidak menyebut kota. Kosong = kota wajib disebut |
+| `search.provider` | Provider pencarian. Saat ini `tavily`. **Kosong atau blok `search` dihapus = `search_web` tidak aktif.** Nama yang tidak dikenal membuat program gagal start |
+| `search.api_key_env` | **Nama** env var berisi API key pencarian. Jika env-nya kosong, `search_web` dimatikan (log `[search] ... dimatikan`) |
+| `search.base_url` | Kosong = alamat bawaan provider. Jika diisi harus `https://` |
+| `search.max_results` | Jumlah hasil pencarian, 1 sampai 10. Default 5 |
+| `log_file` | Path file log (pakai path absolut). **Kosong = tidak ada file log**; WARN dan ERROR tetap tampil di stderr |
+| `log_level` | `debug`, `info`, `warn`, atau `error`. Default `info`. Menentukan level minimum yang ditulis ke file |
+| `log_max_kb` | Ukuran maksimum file log (64 sampai 102400, default 1024). Saat penuh, file diganti nama menjadi `<log_file>.1` (satu cadangan, cadangan lama ditimpa) |
+
+Contoh provider:
+
+| Provider | `base_url` |
+|---|---|
+| Mistral | `https://api.mistral.ai/v1` |
+| OpenAI | `https://api.openai.com/v1` |
+| Groq | `https://api.groq.com/openai/v1` |
+| OpenRouter | `https://openrouter.ai/api/v1` |
+| Ollama (lokal) | `http://localhost:11434/v1` |

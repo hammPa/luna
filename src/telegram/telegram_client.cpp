@@ -1,4 +1,5 @@
 #include "telegram/telegram_client.hpp"
+#include "telegram/telegram_format.hpp"
 
 #include <stdexcept>
 
@@ -72,6 +73,20 @@ std::vector<TelegramUpdate> TelegramClient::get_updates(long long& next_offset,
 void TelegramClient::send_message(long long chat_id, const std::string& text) {
     for (const auto& part : split_message(text)) {
         call("sendMessage", {{"chat_id", chat_id}, {"text", part}}, 15);
+    }
+}
+
+void TelegramClient::send_markdown(long long chat_id, const std::string& text) {
+    for (const auto& c : tgfmt::to_chunks(text)) {
+        try {
+            call("sendMessage",
+                 {{"chat_id", chat_id}, {"text", c.html}, {"parse_mode", "HTML"}}, 15);
+        } catch (const std::runtime_error& e) {
+            // Hanya 400 (HTML tidak valid) yang dicoba ulang polos. Gangguan
+            // jaringan tidak, supaya tidak terkirim dua kali.
+            if (std::string(e.what()).find("API error 400") == std::string::npos) throw;
+            call("sendMessage", {{"chat_id", chat_id}, {"text", c.plain}}, 15);
+        }
     }
 }
 

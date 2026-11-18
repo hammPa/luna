@@ -149,7 +149,7 @@ void run_telegram(const Config& cfg, ChatSession& session, Memory& memory,
             }
 
             try {
-                tg.send_message(u.chat_id, reply);
+                tg.send_markdown(u.chat_id, reply);
             } catch (const std::exception& e) {
                 // std::cerr << "Gagal kirim balasan: " << e.what() << '\n';
                 logger::error("telegram", std::string("gagal kirim balasan: ") + e.what());

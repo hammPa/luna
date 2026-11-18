@@ -14,6 +14,9 @@ inline const ftxui::Color user_c   = ftxui::Color::RGB(86, 182, 194);   // cyan
 inline const ftxui::Color luna_c   = ftxui::Color::RGB(152, 195, 121);  // hijau
 inline const ftxui::Color error_c  = ftxui::Color::RGB(224, 108, 117);  // merah
 inline const ftxui::Color warn_c   = ftxui::Color::RGB(229, 192, 123);  // kuning
+inline const ftxui::Color code_bg     = ftxui::Color::RGB(33, 37, 43);    // latar blok kode
+inline const ftxui::Color inline_code = ftxui::Color::RGB(229, 192, 123); // `kode` satu baris
+inline const ftxui::Color link        = ftxui::Color::RGB(97, 175, 239);
 
 // gradasi ungu -> biru, satu warna per baris logo
 inline const ftxui::Color banner[6] = {

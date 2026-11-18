@@ -1,0 +1,69 @@
+# TUI
+
+## TUI
+
+Layar terdiri dari header (backend, model, jumlah tool), area chat yang otomatis mengikuti pesan terbaru, kotak input, dan bilah petunjuk.
+
+### Kontrol
+
+| Tombol | Fungsi |
+|---|---|
+| Enter | kirim pesan |
+| `/` | buka menu perintah (↑/↓ pilih, Tab atau Enter melengkapi, Esc batal) |
+| PageUp / PageDown | gulir riwayat chat |
+| Roda mouse | gulir riwayat chat |
+| Ctrl+C, `exit`, `/exit` | keluar |
+
+Saat menggulir ke atas, balasan baru tidak menarik tampilan ke bawah; bilah bawah
+menunjukkan jumlah baris di bawah. Mengirim pesan kembali ke bagian terbawah.
+
+Saat sebuah tool butuh izin, muncul kotak di tengah layar:
+
+| Tombol | Arti |
+|---|---|
+| `y` | Izinkan sekali |
+| `a` | Selalu untuk sesi ini (hanya ditawarkan untuk risiko Write) |
+| `n` atau Esc | Tolak |
+
+Selama kotak izin terbuka, tombol lain tidak berfungsi. Menutup TUI saat izin menunggu berarti **ditolak**.
+
+Hal yang perlu diketahui:
+- Panggilan LLM berjalan di thread terpisah, jadi layar tidak membeku. Satu giliran diproses pada satu waktu; Enter diabaikan selagi Luna menjawab.
+- Jawaban muncul sekaligus (belum ada streaming).
+- Selama TUI aktif, `stderr` dialihkan ke `/dev/null` agar peringatan tidak merusak layar. Isi `log_file` untuk tetap melihat WARN dan ERROR.
+- Teks dari model dibersihkan dari karakter kontrol sebelum ditampilkan.
+- Menutup TUI saat Luna masih menunggu LLM akan menunggu permintaan itu selesai (maksimal `timeout_sec`).
+
+### Perintah di chat
+
+| Perintah | Fungsi |
+|---|---|
+| `/remember kunci=nilai` | Simpan fakta permanen, mis. `/remember nama=Budi` |
+| `/facts` | Tampilkan semua fakta |
+| `/clear` | Hapus riwayat percakapan (RAM dan database). **Fakta tidak ikut terhapus** |
+| `/start`, `/help` | Bantuan singkat (Telegram) |
+| `/ctx` | tampilkan ukuran konteks yang terpakai |
+| `exit` / `quit` | Keluar (TUI dan CLI). Di CLI juga Ctrl+D; di TUI juga Ctrl+C |
+
+Fakta otomatis disisipkan ke system prompt di setiap giliran, jadi tidak terpotong oleh `history_limit`. `/clear` berguna kalau model mulai meniru jawaban lama yang sudah basi.
+
+## Indikator konteks
+
+Angka menunjukkan ukuran konteks pada panggilan LLM **terakhir**: system prompt, daftar
+tool, fakta, riwayat, dan hasil tool. Angka naik seiring percakapan, dan turun setelah
+`/clear` atau saat riwayat lama terpangkas oleh `history_limit`. Ini bukan total token
+yang ditagih provider.
+
+    ctx 1.2k / 4096 ▰▰▱▱▱
+
+| Warna | Terpakai |
+|---|---|
+| hijau | < 60% |
+| kuning | 60-85% |
+| merah | > 85% |
+
+Angka berawalan `~` adalah perkiraan (sekitar 3 byte per token), dipakai bila provider
+tidak mengirim `usage`.
+
+Luna belum memangkas riwayat berdasarkan token. Pemangkasan masih lewat `history_limit`,
+jadi hasil tool besar (mis. `read_file`) bisa menaikkan konteks tiba-tiba.
