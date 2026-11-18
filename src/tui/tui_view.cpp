@@ -21,7 +21,7 @@ Element render_screen(TuiState& st, ChatSession& session, TuiPrompter& prompter,
     {
         std::lock_guard<std::mutex> lk(st.mu);
         for (const auto& l : st.lines) {
-            for (auto& r : line_rows(l)) rows.push_back(std::move(r));
+            for (auto& r : line_rows(l, term.dimx)) rows.push_back(std::move(r));
         }
     }
 

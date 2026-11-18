@@ -13,8 +13,9 @@ struct Line {
 // Banner LUNA sebagai daftar baris (versi singkat jika lebar < 40 kolom).
 ftxui::Elements banner_rows(int width);
 
-// Satu pesan jadi beberapa baris (satu per paragraf) + satu baris kosong pemisah.
-ftxui::Elements line_rows(const Line& l);
+// Satu pesan jadi baris layar (satu elemen per baris) + satu baris kosong pemisah.
+// width = lebar total terminal.
+ftxui::Elements line_rows(const Line& l, int width);
 
 // Teks banyak baris dengan pembungkusan kata.
 ftxui::Element paragraphs(const std::string& content);

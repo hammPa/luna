@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.3.1
+Gulir TUI kembali mulus per baris layar, blok kode dibungkus; daftar tool tidak lagi dikirim dua kali ke model (hemat sekitar 700-800 token per panggilan)
+
 ## 1.3.0
 Render markdown di TUI, CLI, dan Telegram (tebal, miring, kode, daftar, judul, kutipan, tautan, blok kode berbahasa); tombol batal giliran (Esc di TUI, Ctrl+C di CLI); `/copy` dan `/copy code` di TUI
 

@@ -51,7 +51,7 @@ Element paragraphs(const std::string& content) {
     return vbox(std::move(rows));
 }
 
-Elements line_rows(const Line& l) {
+Elements line_rows(const Line& l, int width) {
     std::string label = "info";
     Color badge_c = theme::muted;
     Color body_c = theme::muted;
@@ -59,14 +59,18 @@ Elements line_rows(const Line& l) {
     if (l.role == "luna")  { label = "luna";  badge_c = theme::luna_c;  body_c = theme::fg; }
     if (l.role == "error") { label = "error"; badge_c = theme::error_c; body_c = theme::error_c; }
 
-    // Hanya balasan Luna yang dirender sebagai markdown; pesan user, info,
-    // dan error tetap polos supaya tidak berubah bentuk.
+    const int avail = std::max(10, width - kBadgeCol - 1);
+
+    // Hanya balasan Luna yang dirender sebagai markdown. Pesan lain polos,
+    // tapi tetap dibungkus per baris layar agar hitungan gulir akurat.
     Elements body;
     if (l.role == "luna") {
-        body = markdown_rows(l.text, body_c);
+        body = markdown_rows(l.text, body_c, avail);
     } else {
         for (const auto& ln : tui_text::split_lines(l.text)) {
-            body.push_back(ln.empty() ? text("") : (paragraph(ln) | color(body_c)));
+            for (auto& r : markdown_rows(tui_text::sanitize(ln), body_c, avail)) {
+                body.push_back(std::move(r));
+            }
         }
     }
 

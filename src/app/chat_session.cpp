@@ -53,9 +53,9 @@ void ChatSession::trim_history() {
 std::string ChatSession::build_system_prompt() {
     std::string out = cfg_.system_prompt;
 
-    if (!tools_.empty()) {
-        out += "\n\nTool yang tersedia:\n" + tools_.describe_all();
-    }
+    // if (!tools_.empty()) {
+    //     out += "\n\nTool yang tersedia:\n" + tools_.describe_all();
+    // }
 
     std::vector<std::pair<std::string, std::string>> facts;
     try {
