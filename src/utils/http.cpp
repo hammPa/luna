@@ -5,6 +5,7 @@
 #include <memory>
 #include <stdexcept>
 #include <filesystem>
+#include"utils/cancel.hpp"
 
 namespace {
 
@@ -68,6 +69,11 @@ namespace {
         s->out->append(ptr, total);
         return total;
     }
+
+    static int cancelProgress(void* p, curl_off_t, curl_off_t, curl_off_t, curl_off_t) {
+        const auto* flag = static_cast<const std::atomic<bool>*>(p);
+        return (flag != nullptr && flag->load()) ? 1 : 0;   // nonzero = hentikan
+    }
 } // namespace
 
 HttpClient::HttpClient() { curl_global_init(CURL_GLOBAL_DEFAULT); }
@@ -99,7 +105,14 @@ HttpResponse HttpClient::post(const std::string& url,
     curl_easy_setopt(c, CURLOPT_WRITEDATA, &response_body);
     curl_easy_setopt(c, CURLOPT_TIMEOUT, timeout_sec);
 
+    if (cancel_ != nullptr) {
+        curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(c, CURLOPT_XFERINFOFUNCTION, cancelProgress);
+        curl_easy_setopt(c, CURLOPT_XFERINFODATA, const_cast<std::atomic<bool>*>(cancel_));
+    }
+
     CURLcode rc = curl_easy_perform(c);
+    if (rc == CURLE_ABORTED_BY_CALLBACK) throw CancelledError();
     if (rc != CURLE_OK) {
         throw std::runtime_error(std::string("Request gagal: ") +
                                  curl_easy_strerror(rc));

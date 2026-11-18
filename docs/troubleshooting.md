@@ -37,3 +37,4 @@
 | Angka konteks berawalan `~` | Provider tidak mengirim `usage`, jadi angkanya perkiraan |
 | Persen konteks tidak masuk akal | `max_context` di config harus sama dengan konteks
 nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
+| `/copy` tidak menempel | Terminal belum mengizinkan OSC 52 (di kitty cek `clipboard_control`; di tmux butuh `set-clipboard on`) |

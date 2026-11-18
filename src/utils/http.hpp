@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <atomic>
+
 
 struct HttpResponse {
     long statusCode;
@@ -52,4 +54,10 @@ public:
                      std::size_t max_bytes = 256 * 1024) const;
 
     static std::string url_encode(const std::string& s);
+    
+    // Bila bendera menyala saat request berjalan, post() melempar CancelledError.
+    void set_cancel_flag(const std::atomic<bool>* f) { cancel_ = f; }
+
+private:
+    const std::atomic<bool>* cancel_ = nullptr;
 };

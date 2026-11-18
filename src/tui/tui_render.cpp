@@ -109,13 +109,19 @@ Elements key_hint(const std::string& key, const std::string& desc) {
 
 }  // namespace
 
-Element hint_bar(int rows_below) {
+Element hint_bar(int rows_below, bool busy) {
     if (rows_below > 0) {
         return hbox({
             text(" ↓ " + std::to_string(rows_below) + " baris di bawah ") | bold |
                 color(theme::dark) | bgcolor(theme::warn_c),
             text("  PgDn turun · kirim pesan kembali ke bawah") | color(theme::muted),
         });
+    }
+    if (busy) {
+        Elements h;
+        for (auto& part : key_hint("Esc", "batalkan")) h.push_back(std::move(part));
+        for (auto& part : key_hint("PgUp/PgDn", "gulir")) h.push_back(std::move(part));
+        return hbox(std::move(h));
     }
     Elements h;
     for (auto& part : key_hint("Enter", "kirim")) h.push_back(std::move(part));

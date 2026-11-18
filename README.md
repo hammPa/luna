@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.2.0**
+**Versi saat ini: 1.3.0**
 
 [Riwayat versi](CHANGELOG.md)
 
@@ -18,6 +18,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 - **Cuaca dan pencarian web**: `weather` (tanpa API key) dan `search_web` lewat provider yang bisa diganti. Hasil web ditandai sebagai data tak tepercaya.
 - **Log ke file**: riwayat aktivitas (panggilan LLM, aksi tool, aktivitas Telegram) tersimpan sebagai metadata, tanpa isi pesan.
 - Indikator konteks: seberapa penuh percakapan terhadap `max_context`, di header TUI dan setelah tiap balasan di CLI
+- **Render markdown**: tebal, miring, kode, daftar, judul, dan blok kode berbahasa di TUI, CLI, dan Telegram; tombol batal giliran dan /copy.
 
 ## Prasyarat
 
@@ -104,8 +105,8 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 - [x] Backend lokal (Ollama)
 - [x] Log ke file
 - [x] Antarmuka TUI (FTXUI), CLI tetap tersedia lewat `--cli`
-- [x] TUI: gulir riwayat.
-- [ ] TUI: gulir riwayat, riwayat input, aktivitas tool di layar
+- [x] TUI: gulir riwayat, markdown, blok kode, tombol batal, `/copy`
+- [ ] TUI: riwayat input, aktivitas tool di layar, seleksi mouse otomatis.
 - [ ] Streaming balasan
 - [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`
 - [ ] `open_url` dengan pilihan browser dan jendela baru

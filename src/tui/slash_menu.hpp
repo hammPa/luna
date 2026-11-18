@@ -17,6 +17,7 @@ inline const std::vector<SlashCmd>& slash_commands() {
         {"/clear",    "hapus riwayat chat (fakta tetap)", false},
         {"/help",     "bantuan", false},
         {"/ctx",      "ukuran konteks yang terpakai", false},
+        {"/copy",     "salin balasan terakhir (/copy code = blok kode)", false},
         {"/exit",     "keluar dari Luna", false},
     };
     return v;

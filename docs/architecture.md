@@ -20,11 +20,11 @@ luna/
     │       ├── system/   get_time, open_url, open_app, close_app
     │       ├── window/   switch_workspace, list_windows, focus_window, close_window
     │       └── web/      weather, search_web
-    ├── telegram/           client, prompter, loop, file_sink
+    ├── telegram/           client, prompter, loop, file_sink, telegram_format
     ├── auth/               TotpVerifier
     ├── tui/                tui_app, tui_view, tui_events, tui_state, tui_render, tui_text,
-│               tui_prompter, theme, slash_menu
-    └── utils/              http (post, post_multipart, get), config, log, string_utils, process_utils, format_utils, ctx_format
+│               tui_prompter, theme, slash_menu, tui_markdown, clipboard
+    └── utils/              http (post, post_multipart, get), config, log, string_utils, process_utils, format_utils, ctx_format, markdown, markdown_ansi, cancel
 ```
 
 Aturan dependensi: `llm/` tidak mengenal `memory/`, `tools/`, atau `telegram/`. Format khusus provider hanya ada di `openai_backend.cpp`. Detail provider tidak boleh bocor ke `main.cpp`.

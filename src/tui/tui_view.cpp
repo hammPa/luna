@@ -58,7 +58,7 @@ Element render_screen(TuiState& st, ChatSession& session, TuiPrompter& prompter,
     body.push_back(chat);
     if (!matches.empty()) body.push_back(slash_menu_view(matches, st.menu_sel));
     body.push_back(input_bar(std::move(input_el), st.busy));
-    body.push_back(hint_bar(st.scroll));
+    body.push_back(hint_bar(st.scroll, st.busy));
     Element main = vbox(std::move(body));
 
     TuiPrompter::Request req;

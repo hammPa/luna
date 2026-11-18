@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <atomic>
 
 class LLMBackend {
 public:
@@ -14,4 +15,7 @@ public:
                              const nlohmann::json& tools_schema) = 0;
 
     virtual std::string name() const = 0;
+    
+    // Bendera batal; bila menyala, permintaan yang sedang menunggu diputus.
+    virtual void set_cancel_flag(const std::atomic<bool>*) {}
 };

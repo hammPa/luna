@@ -1,6 +1,7 @@
 #include "app/chat_session.hpp"
 #include "utils/log.hpp"
 #include "utils/ctx_format.hpp"
+#include "utils/cancel.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -28,6 +29,7 @@ ChatSession::ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory,
                          ToolRegistry& tools)
     : cfg_(cfg), backend_(backend), memory_(memory), tools_(tools) {
     history_.push_back(make_msg("system", cfg_.system_prompt));
+    backend_.set_cancel_flag(&cancel_);
 }
 
 void ChatSession::load() {
@@ -82,6 +84,7 @@ void ChatSession::save_turn(const std::string& user, const std::string& reply) {
 }
 
 std::string ChatSession::send(const std::string& user_text) {
+    cancel_ = false;
     history_[0].content = build_system_prompt();
 
     // Trim hanya di awal giliran. Jangan di tengah loop tool, karena
@@ -93,6 +96,7 @@ std::string ChatSession::send(const std::string& user_text) {
 
     try {
         for (int round = 0; round < kMaxToolRounds; ++round) {
+            if (cancel_) throw CancelledError();
             const auto t0 = std::chrono::steady_clock::now();
 
             const auto schema = tools_.schema();
@@ -103,6 +107,8 @@ std::string ChatSession::send(const std::string& user_text) {
             logger::info("llm", "chat round=" + std::to_string(round) +
                                 " ms=" + std::to_string(ms) +
                                 " tool_calls=" + std::to_string(r.toolcalls.size()));
+        
+            if (cancel_) throw CancelledError();   // balasan datang tepat saat batal: buang
 
             // Catat ukuran konteks yang dipakai. Jika provider tidak mengirim usage,
             if (r.prompt_tokens > 0) {
@@ -126,12 +132,17 @@ std::string ChatSession::send(const std::string& user_text) {
 
             // Jalankan tiap tool (gerbang permission ada di registry).
             for (const auto& c : r.toolcalls) {
+                if (cancel_) throw CancelledError();
                 Message t = make_msg("tool", tools_.run(c.name, c.arguments));
                 t.tool_call_id = c.id;
                 t.name = c.name;
                 history_.push_back(std::move(t));
             }
         }
+    } catch (const CancelledError&) {
+        logger::info("llm", "giliran dibatalkan");
+        history_.resize(start);
+        throw;
     } catch (const std::exception& e) {
         logger::error("llm", e.what());
         history_.resize(start);

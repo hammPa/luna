@@ -16,6 +16,7 @@ struct TuiState {
     std::atomic<bool> busy{false};
     std::atomic<bool> quit{false};
     std::atomic<int> frame{0};
+    std::atomic<bool> cancelling{false};   // Esc sudah ditekan untuk giliran ini
 
     // Hanya disentuh thread UI (event dan render): tanpa mutex.
     std::string input;

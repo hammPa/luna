@@ -15,6 +15,7 @@ public:
 
     std::string name() const override { return "openai"; }
 
+    void set_cancel_flag(const std::atomic<bool>* f) override { http_.set_cancel_flag(f); }
 private:
     HttpClient http_;
     std::string url_;

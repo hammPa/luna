@@ -38,6 +38,10 @@ public:
     // Hapus riwayat di RAM dan database. Fakta tidak disentuh.
     void clear();
 
+    // Batalkan giliran yang sedang berjalan (aman dipanggil dari thread lain).
+    void cancel() { cancel_ = true; }
+    std::atomic<bool>* cancel_flag() { return &cancel_; }
+
 private:
     void trim_history();
     void save_turn(const std::string& user, const std::string& reply);
@@ -53,4 +57,5 @@ private:
 
     std::atomic<int> ctx_used_{-1};        // dibaca thread UI, ditulis thread kerja
     std::atomic<bool> ctx_estimated_{false};
+    std::atomic<bool> cancel_{false};
 };

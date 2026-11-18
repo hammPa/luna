@@ -13,6 +13,7 @@ Layar terdiri dari header (backend, model, jumlah tool), area chat yang otomatis
 | PageUp / PageDown | gulir riwayat chat |
 | Roda mouse | gulir riwayat chat |
 | Ctrl+C, `exit`, `/exit` | keluar |
+| Esc (saat Luna bekerja) | batalkan giliran yang sedang berjalan |
 
 Saat menggulir ke atas, balasan baru tidak menarik tampilan ke bawah; bilah bawah
 menunjukkan jumlah baris di bawah. Mengirim pesan kembali ke bagian terbawah.
@@ -29,7 +30,8 @@ Selama kotak izin terbuka, tombol lain tidak berfungsi. Menutup TUI saat izin me
 
 Hal yang perlu diketahui:
 - Panggilan LLM berjalan di thread terpisah, jadi layar tidak membeku. Satu giliran diproses pada satu waktu; Enter diabaikan selagi Luna menjawab.
-- Jawaban muncul sekaligus (belum ada streaming).
+- Jawaban muncul sekaligus (belum ada streaming). Balasan Luna dirender dengan markdown: tebal, miring, kode inline, daftar, judul, kutipan, tautan, dan blok kode berlabel bahasa. Tabel dan format bersarang belum didukung.
+- `Esc` saat Luna bekerja membatalkan giliran (jeda sekitar 1 detik). Tool yang sedang berjalan selesai dulu.
 - Selama TUI aktif, `stderr` dialihkan ke `/dev/null` agar peringatan tidak merusak layar. Isi `log_file` untuk tetap melihat WARN dan ERROR.
 - Teks dari model dibersihkan dari karakter kontrol sebelum ditampilkan.
 - Menutup TUI saat Luna masih menunggu LLM akan menunggu permintaan itu selesai (maksimal `timeout_sec`).
@@ -43,6 +45,8 @@ Hal yang perlu diketahui:
 | `/clear` | Hapus riwayat percakapan (RAM dan database). **Fakta tidak ikut terhapus** |
 | `/start`, `/help` | Bantuan singkat (Telegram) |
 | `/ctx` | tampilkan ukuran konteks yang terpakai |
+| `/copy` | Salin balasan Luna terakhir ke clipboard (OSC 52) |
+| `/copy code` | Salin hanya blok kode terakhir dari balasan Luna |
 | `exit` / `quit` | Keluar (TUI dan CLI). Di CLI juga Ctrl+D; di TUI juga Ctrl+C |
 
 Fakta otomatis disisipkan ke system prompt di setiap giliran, jadi tidak terpotong oleh `history_limit`. `/clear` berguna kalau model mulai meniru jawaban lama yang sudah basi.
@@ -67,3 +71,17 @@ tidak mengirim `usage`.
 
 Luna belum memangkas riwayat berdasarkan token. Pemangkasan masih lewat `history_limit`,
 jadi hasil tool besar (mis. `read_file`) bisa menaikkan konteks tiba-tiba.
+
+
+## Format balasan
+
+Balasan Luna dirender sesuai markdown di semua antarmuka:
+
+| Antarmuka | Tampilan |
+|---|---|
+| TUI | tebal, miring, kode inline berlatar, daftar, judul, kutipan, tautan, blok kode berlatar dengan label bahasa |
+| CLI | escape ANSI di terminal; teks asli bila output di-pipe |
+| Telegram | HTML (`<b>`, `<i>`, `<code>`, `<pre>`); bila Telegram menolak, dikirim sebagai teks polos |
+
+Belum didukung: tabel, format bersarang (`**tebal `kode`**`), dan `_miring_`.
+Pesan Telegram dipecah di batas blok sehingga blok kode tidak terbelah.

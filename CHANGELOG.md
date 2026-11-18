@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.3.0
+Render markdown di TUI, CLI, dan Telegram (tebal, miring, kode, daftar, judul, kutipan, tautan, blok kode berbahasa); tombol batal giliran (Esc di TUI, Ctrl+C di CLI); `/copy` dan `/copy code` di TUI
+
 ## 1.2
 Indikator konteks (TUI/CLI), `/ctx`, modularisasi TUI
 

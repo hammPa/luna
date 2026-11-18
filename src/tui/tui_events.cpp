@@ -5,6 +5,9 @@
 #include "tui/tui_text.hpp"
 
 #include "ftxui/screen/terminal.hpp"
+#include "tui/clipboard.hpp"
+#include "utils/cancel.hpp"
+#include "utils/markdown.hpp"
 
 #include <algorithm>
 #include <exception>
@@ -67,6 +70,46 @@ bool handle_scroll(const Event& ev, TuiState& st) {
     return false;   // klik dll. tetap diteruskan ke kotak input
 }
 
+// Esc saat sibuk = batalkan giliran. (Kotak izin sudah ditangani lebih dulu.)
+bool handle_cancel(const Event& e, TuiDeps& d) {
+    if (!d.st.busy || e != Event::Escape) return false;
+    if (!d.st.cancelling.exchange(true)) {
+        d.session.cancel();
+        d.st.add("info", "Membatalkan giliran...");
+    }
+    return true;
+}
+
+void do_copy(TuiState& st, bool code_only) {
+    std::string reply;
+    {
+        std::lock_guard<std::mutex> lk(st.mu);
+        for (auto it = st.lines.rbegin(); it != st.lines.rend(); ++it) {
+            if (it->role == "luna") { reply = it->text; break; }
+        }
+    }
+    if (reply.empty()) {
+        st.add("info", "Belum ada balasan Luna untuk disalin.");
+        return;
+    }
+    std::string payload = reply;
+    if (code_only) {
+        payload.clear();
+        for (const auto& b : md::parse(reply)) {
+            if (b.kind == md::BlockKind::Code) payload = b.code;   // yang terakhir
+        }
+        if (payload.empty()) {
+            st.add("info", "Balasan terakhir tidak punya blok kode.");
+            return;
+        }
+    }
+    if (clipboard::copy(payload)) {
+        st.add("info", "Tersalin " + std::to_string(payload.size()) + " karakter ke clipboard.");
+    } else {
+        st.add("info", "Gagal menyalin (kosong atau lebih dari 100000 karakter).");
+    }
+}
+
 bool handle_submit(const Event& e, TuiDeps& d) {
     if (e != Event::Return) return false;
     TuiState& st = d.st;
@@ -83,7 +126,11 @@ bool handle_submit(const Event& e, TuiDeps& d) {
 
     st.scroll = 0;   // kirim pesan = kembali ke bawah
     st.add("user", msg);
-
+    
+    if (msg == "/copy" || msg == "/copy code") {
+        do_copy(st, msg == "/copy code");
+        return true;
+    }
     if (msg[0] == '/') {
         std::ostringstream out;
         bool handled = false;
@@ -104,8 +151,11 @@ bool handle_submit(const Event& e, TuiDeps& d) {
     d.worker = std::thread([&d, msg] {
         std::string role = "luna";
         std::string reply;
-        try {
+                try {
             reply = d.session.send(msg);
+        } catch (const CancelledError&) {
+            role = "info";
+            reply = "Giliran dibatalkan.";
         } catch (const std::exception& ex) {
             role = "error";
             reply = ex.what();
@@ -114,6 +164,7 @@ bool handle_submit(const Event& e, TuiDeps& d) {
             reply = "kesalahan tidak dikenal";
         }
         d.st.add(role, reply);
+        d.st.cancelling = false;
         d.st.busy = false;
         d.refresh();
     });
@@ -125,6 +176,7 @@ bool handle_submit(const Event& e, TuiDeps& d) {
 bool handle_event(const Event& e, TuiDeps& d) {
     if (e == Event::Custom) return false;
     if (handle_permission(e, d)) return true;
+    if (handle_cancel(e, d)) return true;
     if (handle_menu(e, d.st)) return true;
     if (handle_scroll(e, d.st)) return true;
     return handle_submit(e, d);

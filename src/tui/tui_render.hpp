@@ -23,7 +23,7 @@ ftxui::Element slash_menu_view(const std::vector<SlashCmd>& items, int selected)
 
 
 // Bilah petunjuk bawah; rows_below > 0 = sedang menggulir.
-ftxui::Element hint_bar(int rows_below);
+ftxui::Element hint_bar(int rows_below, bool busy = false);
 
 // Header: nama, status backend, indikator konteks, siap/bekerja.
 ftxui::Element header_bar(const std::string& status, int used, int max,
