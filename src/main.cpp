@@ -1,5 +1,6 @@
 #include "app/chat_session.hpp"
 #include "app/commands.hpp"
+#include "app/run_cli.hpp"
 #include "llm/backend_factory.hpp"
 #include "memory/memory.hpp"
 #include "utils/config.hpp"
@@ -25,6 +26,8 @@
 #include "utils/markdown_ansi.hpp"
 #include "utils/cancel.hpp"
 
+#include "app/register_tools.hpp"
+
 #include <unistd.h>
 
 #include <cstring>
@@ -34,80 +37,11 @@
 #include <csignal>
 #include <atomic>
 
-namespace {
-
-std::atomic<bool>* g_cancel = nullptr;
-volatile std::sig_atomic_t g_busy = 0;
-
-// Ctrl+C: saat menunggu jawaban = batalkan giliran. Saat menunggu input,
-// getline terputus (tanpa SA_RESTART) dan loop keluar rapi.
-void on_sigint(int) {
-    if (g_busy && g_cancel) g_cancel->store(true);
-}
-
-
-void register_basic_tools(ToolRegistry& registry) {
-    registry.add(std::make_unique<GetTimeTool>());
-    registry.add(std::make_unique<OpenUrlTool>());
-}
-
-void register_window_tools(ToolRegistry& registry, bool telegram_mode) {
-    if (!SwitchWorkspaceTool::available()) return;   // bukan Hyprland
-    registry.add(std::make_unique<SwitchWorkspaceTool>());
-    registry.add(std::make_unique<ListWindowsTool>());
-    registry.add(std::make_unique<FocusWindowTool>());
-    registry.add(std::make_unique<CloseWindowTool>(!telegram_mode));
-}
-
-void register_app_tools(ToolRegistry& registry, const Config& cfg) {
-    if (cfg.apps.empty()) return;
-    registry.add(std::make_unique<OpenAppTool>(cfg.apps));
-
-    auto closer = std::make_unique<CloseAppTool>(cfg.apps);
-    if (!closer->empty()) registry.add(std::move(closer));
-}
-
-// Fail closed: tanpa allowed_dirs, tool file tidak didaftarkan sama sekali.
-void register_file_tools(ToolRegistry& registry, const Config& cfg,
-                         std::unique_ptr<PathGuard>& guard, FileSink& file_sink) {
-    if (cfg.allowed_dirs.empty()) return;
-    guard = std::make_unique<PathGuard>(cfg.allowed_dirs);
-    registry.add(std::make_unique<ListDirTool>(*guard));
-    registry.add(std::make_unique<ReadFileTool>(*guard));
-    registry.add(std::make_unique<CreateFileTool>(*guard));
-    registry.add(std::make_unique<PatchFileTool>(*guard));
-    registry.add(std::make_unique<WriteFileTool>(*guard));
-    registry.add(std::make_unique<DeleteFileTool>(*guard));
-    registry.add(std::make_unique<SearchFilesTool>(*guard));
-    registry.add(std::make_unique<SendFileTool>(
-        *guard, file_sink, static_cast<std::uintmax_t>(cfg.max_send_mb) * 1024 * 1024));
-}
-
-void register_web_tools(ToolRegistry& registry, const Config& cfg, SearchProvider* search) {
-    registry.add(std::make_unique<WeatherTool>(cfg.default_location, 15L));
-    if (search) {
-        registry.add(std::make_unique<SearchWebTool>(*search, cfg.search_max_results));
-    }
-}
-
-}  // namespace
-
-void register_tools(ToolRegistry& registry, const Config& cfg,
-                    std::unique_ptr<PathGuard>& guard, FileSink& file_sink,
-                    SearchProvider* search, bool telegram_mode) {
-    register_basic_tools(registry);
-    register_window_tools(registry, telegram_mode);
-    register_app_tools(registry, cfg);
-    register_file_tools(registry, cfg, guard, file_sink);
-    register_web_tools(registry, cfg, search);
-}
 
 enum class Mode { Tui, Cli, Telegram };
 
-int main(int argc, char** argv) {
-    const std::string config_path = (argc > 1) ? argv[1] : "config.json";
-
-    Mode mode = Mode::Tui;
+// Mengisi `mode` dari argumen. false = argumen tidak dikenal (pesan sudah dicetak).
+bool parse_mode(int argc, char** argv, Mode& mode) {
     if (argc > 2) {
         if (std::strcmp(argv[2], "--telegram") == 0) {
             mode = Mode::Telegram;
@@ -116,33 +50,25 @@ int main(int argc, char** argv) {
         } else {
             std::cerr << "Argumen tidak dikenal: " << argv[2]
                       << "\nPakai: luna [config.json] [--cli | --telegram]\n";
-            return 1;
+            return false;
         }
     }
-    const bool telegram_mode = (mode == Mode::Telegram);
+    return true;
+}
 
-    if (mode == Mode::Tui && (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))) {
-        std::cerr << "TUI butuh terminal interaktif. Pakai --cli untuk input dari pipe.\n";
-        return 1;
-    }
 
-    // Urutan deklarasi penting: yang dirujuk ChatSession harus
-    // dideklarasikan lebih dulu (dihancurkan belakangan).
+// Urutan deklarasi penting: yang dirujuk ChatSession harus
+// dideklarasikan lebih dulu (dihancurkan belakangan).
+struct App {
     Config cfg;
     std::unique_ptr<LLMBackend> backend;
     std::unique_ptr<Memory> memory;
     TelegramPrompter telegram_prompter;
     TerminalPrompter terminal_prompter;
     TuiPrompter tui_prompter;
-    Prompter& prompter = (mode == Mode::Telegram) ? static_cast<Prompter&>(telegram_prompter)
-                       : (mode == Mode::Cli)      ? static_cast<Prompter&>(terminal_prompter)
-                                                  : static_cast<Prompter&>(tui_prompter);
-
 
     TerminalFileSink terminal_sink;
     TelegramFileSink telegram_sink;
-    FileSink& file_sink = telegram_mode ? static_cast<FileSink&>(telegram_sink)
-                                        : static_cast<FileSink&>(terminal_sink);
 
     std::unique_ptr<SearchProvider> search_provider;
 
@@ -150,47 +76,78 @@ int main(int argc, char** argv) {
     std::unique_ptr<PermissionGate> gate;
     std::unique_ptr<ToolRegistry> registry;
     std::unique_ptr<ChatSession> session;   // paling akhir = dihancurkan paling dulu
+};
 
+bool start_app(App& app, const std::string& config_path, Mode mode) {
+    Prompter& prompter = (mode == Mode::Telegram) ? static_cast<Prompter&>(app.telegram_prompter)
+                       : (mode == Mode::Cli)      ? static_cast<Prompter&>(app.terminal_prompter)
+                                                  : static_cast<Prompter&>(app.tui_prompter);
+
+    FileSink& file_sink = mode == Mode::Telegram ? static_cast<FileSink&>(app.telegram_sink)
+                                                 : static_cast<FileSink&>(app.terminal_sink);
+    
     try {
-        cfg = load_config(config_path);
-        logger::init(cfg.log_file, parse_log_level(cfg.log_level),
-             static_cast<std::size_t>(cfg.log_max_kb) * 1024);
+        app.cfg = load_config(config_path);
+        logger::init(app.cfg.log_file, parse_log_level(app.cfg.log_level),
+             static_cast<std::size_t>(app.cfg.log_max_kb) * 1024);
         
         
-        backend = create_backend(cfg);
-        memory = std::make_unique<Memory>(cfg.memory_db);
-        search_provider = make_search_provider(cfg);
+        app.backend = create_backend(app.cfg);
+        app.memory = std::make_unique<Memory>(app.cfg.memory_db);
+        app.search_provider = make_search_provider(app.cfg);
 
-        gate = std::make_unique<PermissionGate>(make_policy(cfg.permissions), prompter);
-        registry = std::make_unique<ToolRegistry>(*gate);
+        app.gate = std::make_unique<PermissionGate>(make_policy(app.cfg.permissions), prompter);
+        app.registry = std::make_unique<ToolRegistry>(*app.gate);
 
-        register_tools(*registry, cfg, guard, file_sink, search_provider.get(), telegram_mode);
+        register_tools(*app.registry, app.cfg, app.guard, file_sink, app.search_provider.get(), mode == Mode::Telegram);
 
-        session = std::make_unique<ChatSession>(cfg, *backend, *memory, *registry);
-        session->load();
+        app.session = std::make_unique<ChatSession>(app.cfg, *app.backend, *app.memory, *app.registry);
+        app.session->load();
 
         std::string tool_names;
-        for (const auto& t : registry->schema()) {
+        for (const auto& t : app.registry->schema()) {
             if (!tool_names.empty()) tool_names += ",";
             tool_names += t.value("name", "?");
         }
-        const char* mode_name = telegram_mode ? "telegram" : (mode == Mode::Cli ? "cli" : "tui");
+        const char* mode_name = (mode == Mode::Telegram) ? "telegram" :
+                                (mode == Mode::Cli ? "cli" : "tui");
         logger::info("app", std::string("start mode=") + mode_name +
-                            " backend=" + backend->name() + " model=" + cfg.model +
-                            " history=" + std::to_string(session->history_size()));
+                            " backend=" + app.backend->name() + " model=" + app.cfg.model +
+                            " history=" + std::to_string(app.session->history_size()));
         logger::info("app", "tools=" + tool_names);
 
-        std::cerr << "allowed_dirs=" << cfg.allowed_dirs.size()
-          << " tools=" << registry->schema().size() << '\n';
+        std::cerr << "allowed_dirs=" << app.cfg.allowed_dirs.size()
+          << " tools=" << app.registry->schema().size() << '\n';
     } catch (const std::exception& e) {
         // std::cerr << "Gagal start: " << e.what() << '\n';
         logger::error("app", std::string("Gagal start: ") + e.what());
+        return false;
+    }
+    return true;
+}
+
+int main(int argc, char** argv) {
+    const std::string config_path = (argc > 1) ? argv[1] : "config.json";
+
+    Mode mode = Mode::Tui;
+    if(!parse_mode(argc, argv, mode)) { // jika false berarti 0, negasi menjadi true, jadi akan selesai dengan return 1
         return 1;
     }
 
-    if (telegram_mode) {
+    if (mode == Mode::Tui && (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))) {
+        std::cerr << "TUI butuh terminal interaktif. Pakai --cli untuk input dari pipe.\n";
+        return 1;
+    }
+
+    App app;
+    if(!start_app(app, config_path, mode)) { // jika false berarti 0, negsi jadi true, jadi akan selesai program dengan return 1
+        return 1;
+    }
+
+
+    if (mode == Mode::Telegram) {
         try {
-            run_telegram(cfg, *session, *memory, telegram_prompter, telegram_sink);
+            run_telegram(app.cfg, *app.session, *app.memory, app.telegram_prompter, app.telegram_sink);
         } catch (const std::exception& e) {
             // std::cerr << "Gagal: " << e.what() << '\n';
             logger::error("app", std::string("Gagal: ") + e.what());
@@ -200,50 +157,12 @@ int main(int argc, char** argv) {
     }
 
     if (mode == Mode::Tui) {
-        const std::string status = backend->name() + " · " + cfg.model + " · " +
-                                   std::to_string(registry->schema().size()) + " tool";
-        const int rc = run_tui(*session, *memory, tui_prompter, status);
+        const std::string status = app.backend->name() + " · " + app.cfg.model + " · " +
+                                   std::to_string(app.registry->schema().size()) + " tool";
+        const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status);
         logger::info("app", "berhenti");
         return rc;
     }
 
-    std::cout << "Backend: " << backend->name() << " | Model: " << cfg.model
-              << " | Riwayat dimuat: " << session->history_size() << " pesan"
-              << "\nPerintah: /remember kunci=nilai, /facts, exit\n";
-
-    g_cancel = session->cancel_flag();
-    struct sigaction sa {};
-    sa.sa_handler = on_sigint;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;                  // tanpa SA_RESTART
-    sigaction(SIGINT, &sa, nullptr);
-
-    std::string line;
-    while (true) {
-        std::cout << "> " << std::flush;
-        if (!std::getline(std::cin, line)) break;
-        if (line == "exit" || line == "quit") break;
-        if (line.empty()) continue;
-
-        if (line[0] == '/' && handle_command(line, *memory, *session, std::cout)) continue;
-
-        g_busy = 1;
-        try {
-            // std::cout << session->send(line) << "\n\n";
-            const std::string reply = session->send(line);
-            std::cout << (isatty(STDOUT_FILENO) ? md::to_ansi(reply) : reply) << "\n";
-            std::cout << "\x1b[2m[" << ctx_fmt::summary(session->ctx_used(), session->ctx_max(),
-                                                        session->ctx_estimated())
-                      << "]\x1b[0m\n\n";
-        } catch (const CancelledError&) {
-            std::cout << "Dibatalkan.\n\n";
-        } catch (const std::exception& e) {
-            std::cerr << "Error: " << e.what() << '\n';
-        }
-        g_busy = 0;
-    }
-    
-    logger::info("app", "berhenti");
-    std::cout << "Sampai jumpa.\n";
-    return 0;
+    return run_cli(*app.backend, app.cfg, *app.session, *app.memory);
 }

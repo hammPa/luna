@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.3.2
+Refactor `main.cpp` tanpa perubahan perilaku: `Mode` dipakai di semua tempat, argumen dipisah ke `parse_mode()`, objek dikumpulkan di `struct App` dengan `start_app()`, mode CLI pindah ke `app/run_cli.cpp`, dan `register_*_tools` pindah ke `app/register_tools.cpp`
+
 ## 1.3.1
 Gulir TUI kembali mulus per baris layar, blok kode dibungkus; daftar tool tidak lagi dikirim dua kali ke model (hemat sekitar 700-800 token per panggilan)
 

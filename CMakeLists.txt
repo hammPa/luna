@@ -46,6 +46,8 @@ add_executable(luna
     src/tui/tui_view.cpp
     src/tui/tui_events.cpp
     src/tui/tui_markdown.cpp
+    src/app/run_cli
+    src/app/register_tools.cpp
 )
 
 target_include_directories(luna PRIVATE
