@@ -2,14 +2,14 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.4.2**
+**Versi saat ini: 1.5.0**
 
 [Riwayat versi](CHANGELOG.md)
 
 ## Fitur
 
 - **Antarmuka TUI** (FTXUI): layar chat satu halaman, kotak izin interaktif, indikator saat menunggu jawaban. Mode `--cli` tetap tersedia untuk SSH dan pipe.
-- **Backend AI agnostik**: semua provider yang kompatibel dengan OpenAI API (OpenAI, Mistral, Groq, DeepSeek, OpenRouter, router seperti 9router) dan model lokal lewat Ollama. Ganti model/provider cukup edit `config.json`, tanpa rebuild.
+- **Backend AI agnostik**: semua provider yang kompatibel dengan OpenAI API (OpenAI, Mistral, Groq, DeepSeek, OpenRouter, router seperti 9router) dan model lokal lewat Ollama. Banyak provider dan model didaftarkan di `config.json`; ganti dengan mengubah `active`, tanpa rebuild.
 - **Memori jangka panjang** (SQLite): riwayat chat dan fakta permanen tentangmu.
 - **Tool calling**: model memanggil tool yang kamu daftarkan.
 - **Permission gate**: setiap tool punya tingkat risiko; yang berisiko ditanyakan dulu.
@@ -111,6 +111,8 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 - [x] Hidup/matikan tool saat berjalan
 - [x] Profil tool (kumpulan tool aktif yang bisa diganti)
 - [x] TUI: riwayat input (panah atas/bawah)
+- [x] Config `providers` dengan banyak model
+- [ ] Ganti model saat berjalan (`/model`)
 - [ ] TUI: aktivitas tool di layar, seleksi mouse otomatis.
 - [ ] Streaming balasan
 - [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`

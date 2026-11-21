@@ -17,14 +17,29 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 
 ```json
 {
-    "backend": "openai",
-    "model": "mistral/ministral-3b-latest",
-    "base_url": "https://hamm.up.railway.app/v1",
-    "api_key_env": "NINE_ROUTER_API_KEY",
+    "active": {"provider": "9router", "model": "groq/openai/gpt-oss-120b"},
+    "providers": {
+        "9router": {
+            "backend": "openai",
+            "base_url": "https://hamm.up.railway.app/v1",
+            "api_key_env": "NINE_ROUTER_API_KEY",
+            "timeout_sec": 30,
+            "models": {
+                "groq/openai/gpt-oss-120b": {"max_context": 131072, "history_limit": 20}
+            }
+        },
+        "ollama": {
+            "backend": "openai",
+            "base_url": "http://localhost:11434/v1",
+            "api_key_env": "LUNA_DUMMY_KEY",
+            "timeout_sec": 180,
+            "models": {
+                "qwen2.5:1.5b": {"max_context": 4096, "history_limit": 8},
+                "qwen3-coder:3b":   {"max_context": 8192, "history_limit": 8}
+            }
+        }
+    },
     "system_prompt": "Kamu Luna, asisten pribadi yang ramah dan to the point.",
-    "history_limit": 20,
-    "max_context": 4096,
-    "timeout_sec": 30,
     "memory_db": "/home/USER/luna-data/memory.db",
 
     "allowed_dirs": ["/home/USER/luna-workspace"],
@@ -74,14 +89,10 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 
 | Field | Arti |
 |---|---|
-| `backend` | Saat ini hanya `openai` (format OpenAI-compatible) |
-| `model` | Nama model sesuai provider |
-| `base_url` | URL dasar API, tanpa `/chat/completions` |
-| `api_key_env` | **Nama** env var yang berisi API key (bukan key-nya) |
+| `active` | Pasangan `{"provider": "...", "model": "..."}` yang dipakai. Wajib. Harus terdaftar di `providers` |
+| `providers` | Nama provider → `backend` (saat ini hanya `openai`), `base_url` (tanpa `/chat/completions`), `api_key_env` (**nama** env var, bukan key-nya), `timeout_sec` (batas waktu request HTTP), dan `models`. Semua wajib |
+| `providers.X.models` | Nama model → `max_context` (batas konteks untuk indikator; samakan dengan konteks nyata model, belum dipakai memangkas riwayat) dan `history_limit` (jumlah pesan riwayat yang dikirim). Keduanya wajib. Nama model string bebas (boleh memuat `/` atau `:`), dikirim ke provider apa adanya |
 | `system_prompt` | Aturan umum Luna. Daftar tool dan fakta ditambahkan otomatis |
-| `history_limit` | Jumlah pesan riwayat yang dikirim (tanpa system prompt) |
-| `max_context` | Batas konteks (token) untuk tampilan indikator. Samakan dengan konteks nyata model (mis. `num_ctx` Ollama). Belum dipakai untuk memangkas riwayat. |
-| `timeout_sec` | Batas waktu request HTTP |
 | `memory_db` | Path file SQLite. Relatif terhadap folder tempat Luna dijalankan, jadi pakai path absolut agar konsisten |
 | `allowed_dirs` | Folder yang boleh disentuh tool file. Entri pertama = workspace utama. **Kosong = tool file tidak aktif.** Pakai path lengkap (`~` tidak diperluas) |
 | `permissions` | Kebijakan per tingkat risiko: `allow`, `ask`, `deny` |

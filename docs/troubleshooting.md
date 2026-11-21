@@ -38,3 +38,6 @@
 | Persen konteks tidak masuk akal | `max_context` di config harus sama dengan konteks
 nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
 | `/copy` tidak menempel | Terminal belum mengizinkan OSC 52 (di kitty cek `clipboard_control`; di tmux butuh `set-clipboard on`) |
+| `Gagal start: field '...' tingkat atas tidak dipakai lagi` | Config format lama; pindahkan ke `providers` dan `active` (lihat `config.example.json`) |
+| `Gagal start: model '...' tidak terdaftar` | Model di `active` belum ada di `providers.<nama>.models` |
+| `Gagal start: model '...' wajib punya 'max_context'` | Isi `max_context` dan `history_limit` di entri `models` |

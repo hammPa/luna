@@ -2,20 +2,27 @@
 
 ### Model lokal dengan Ollama
 
-Ollama menyediakan endpoint OpenAI-compatible, jadi tidak butuh kode tambahan. Contoh jika menggunakan ollama:
+Ollama menyediakan endpoint OpenAI-compatible, jadi tidak butuh kode tambahan. Daftarkan sebagai provider:
 
 ```json
-"base_url": "http://localhost:11434/v1",
-"model": "qwen2.5:3b",
-"api_key_env": "LUNA_DUMMY_KEY",
-"timeout_sec": 180,
-"history_limit": 8
+"active": {"provider": "ollama", "model": "qwen2.5:3b"},
+"providers": {
+    "ollama": {
+        "backend": "openai",
+        "base_url": "http://localhost:11434/v1",
+        "api_key_env": "LUNA_DUMMY_KEY",
+        "timeout_sec": 180,
+        "models": {
+            "qwen2.5:3b": {"max_context": 4096, "history_limit": 8}
+        }
+    }
+}
 ```
 
 ```bash
 ollama pull qwen2.5:3b
 export LUNA_DUMMY_KEY=ollama     # nilainya bebas, tetapi env var harus terisi
-./luna ../config.ollama.json
+./luna ../config.json
 ```
 
 - `ollama ps` menunjukkan apakah model berjalan di GPU (kolom `PROCESSOR`).

@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.0
+Config memakai `providers` (banyak model per provider) dan `active`; `max_context` dan `history_limit` per model, `timeout_sec` per provider; field `backend`, `model`, `base_url`, `api_key_env`, `max_context`, `timeout_sec`, `history_limit` tingkat atas dihapus (perubahan yang memutus kompatibilitas)
+
 ## 1.4.2
 TUI: riwayat input dengan panah atas/bawah; jumlahnya diatur lewat `input_history_max` di config (bawaan 100, 0 = mati)
 

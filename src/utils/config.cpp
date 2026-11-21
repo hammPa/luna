@@ -23,20 +23,17 @@ Config load_config(const std::string& path) {
 
     Config cfg;
     try {
-        cfg.backend       = j.value("backend", cfg.backend);
-        cfg.model         = j.value("model", cfg.model);
-        cfg.base_url      = j.value("base_url", cfg.base_url);
-        cfg.api_key_env   = j.value("api_key_env", cfg.api_key_env);
+        for (const char* old : {"backend", "model", "base_url", "api_key_env",
+                                "max_context", "timeout_sec", "history_limit"}) {
+            if (j.contains(old)) {
+                throw std::runtime_error(std::string("field '") + old +
+                    "' tingkat atas tidak dipakai lagi sejak 1.5; pindahkan ke 'providers' "
+                    "(lihat config.example.json)");
+            }
+        }
         cfg.system_prompt = j.value("system_prompt", cfg.system_prompt);
-        cfg.max_context   = j.value("max_context", cfg.max_context);
-        cfg.timeout_sec   = j.value("timeout_sec", cfg.timeout_sec);
         cfg.memory_db = j.value("memory_db", cfg.memory_db);
 
-        int limit = j.value("history_limit", static_cast<int>(cfg.history_limit));
-        if (limit < 1) {
-            throw std::runtime_error("history_limit harus >= 1");
-        }
-        
         if (j.contains("allowed_dirs")) {
             cfg.allowed_dirs = j.at("allowed_dirs").get<std::vector<std::string>>();
         }
@@ -57,9 +54,9 @@ Config load_config(const std::string& path) {
         }
 
         if (j.contains("profiles")) {
-            const auto& p = j.at("profiles");
-            if (!p.is_object()) throw std::runtime_error("'profiles' harus object");
-            for (const auto& [name, v] : p.items()) {
+            const auto& pr = j.at("profiles");
+            if (!pr.is_object()) throw std::runtime_error("'profiles' harus object");
+            for (const auto& [name, v] : pr.items()) {
                 if (!v.is_array()) {
                     throw std::runtime_error("profil '" + name + "' harus array nama tool");
                 }
@@ -77,8 +74,59 @@ Config load_config(const std::string& path) {
         if (j.contains("telegram_allowed_users")) {
             cfg.telegram_allowed_users = j.at("telegram_allowed_users").get<std::vector<long long>>();
         }
-        
-        cfg.history_limit = static_cast<std::size_t>(limit);
+
+        // Provider + model aktif. Provider: backend, base_url, api_key_env, timeout_sec.
+        // Model: max_context, history_limit.
+        if (!j.contains("providers") || !j.at("providers").is_object() ||
+            j.at("providers").empty()) {
+            throw std::runtime_error("'providers' wajib (object, minimal satu provider); "
+                                     "lihat config.example.json");
+        }
+        if (!j.contains("active") || !j.at("active").is_object()) {
+            throw std::runtime_error("'active' wajib: {\"provider\": \"...\", \"model\": \"...\"}");
+        }
+        const std::string act_prov  = j.at("active").value("provider", "");
+        const std::string act_model = j.at("active").value("model", "");
+        if (act_prov.empty() || act_model.empty()) {
+            throw std::runtime_error("'active' harus berisi 'provider' dan 'model'");
+        }
+
+        const auto& provs = j.at("providers");
+        if (!provs.contains(act_prov) || !provs.at(act_prov).is_object()) {
+            throw std::runtime_error("active.provider '" + act_prov + "' tidak ada di providers");
+        }
+        const auto& p = provs.at(act_prov);
+        if (!p.contains("models") || !p.at("models").is_object() ||
+            !p.at("models").contains(act_model) || !p.at("models").at(act_model).is_object()) {
+            throw std::runtime_error("model '" + act_model + "' tidak terdaftar di providers." +
+                                     act_prov + ".models (isi max_context dan history_limit)");
+        }
+        const auto& m = p.at("models").at(act_model);
+
+        for (const char* key : {"backend", "base_url", "api_key_env", "timeout_sec"}) {
+            if (!p.contains(key)) {
+                throw std::runtime_error("providers." + act_prov + " wajib punya '" + key + "'");
+            }
+        }
+        for (const char* key : {"max_context", "history_limit"}) {
+            if (!m.contains(key)) {
+                throw std::runtime_error("model '" + act_model + "' wajib punya '" + key + "'");
+            }
+        }
+
+        cfg.active_provider = act_prov;
+        cfg.model           = act_model;
+        cfg.backend         = p.at("backend").get<std::string>();
+        cfg.base_url        = p.at("base_url").get<std::string>();
+        cfg.api_key_env     = p.at("api_key_env").get<std::string>();
+        cfg.timeout_sec     = p.at("timeout_sec").get<long>();
+        cfg.max_context     = m.at("max_context").get<int>();
+
+        const int hl = m.at("history_limit").get<int>();
+        if (hl < 1) {
+            throw std::runtime_error("history_limit harus >= 1");
+        }
+        cfg.history_limit = static_cast<std::size_t>(hl);
 
         cfg.max_send_mb = j.value("max_send_mb", cfg.max_send_mb);
         if (cfg.max_send_mb < 1 || cfg.max_send_mb > 50) {
@@ -111,7 +159,7 @@ Config load_config(const std::string& path) {
             throw std::runtime_error("input_history_max harus 0 sampai 10000");
         }
     } catch (const json::exception& e) {
-        // misalnya "model" berisi angka, bukan string
+        // misalnya "max_context" berisi string, bukan angka
         throw std::runtime_error("Tipe field config salah: " + std::string(e.what()));
     }
 
