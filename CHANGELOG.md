@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.4.2
+TUI: riwayat input dengan panah atas/bawah; jumlahnya diatur lewat `input_history_max` di config (bawaan 100, 0 = mati)
+
 ## 1.4.1
 Profil tool: `profiles` dan `active_profile` di config, `/profile` untuk melihat dan mengganti profil (TUI dan CLI); header TUI menampilkan jumlah tool aktif dan nama profil secara langsung
 

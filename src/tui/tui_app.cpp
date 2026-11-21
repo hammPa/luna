@@ -22,7 +22,7 @@
 using namespace ftxui;
 
 int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
-            const std::string& status, ToolRegistry& tools) {
+            const std::string& status, ToolRegistry& tools, int history_max) {
     // Semua penulis std::cerr (peringatan di mana pun) tidak boleh merusak layar.
     std::ofstream devnull("/dev/null");
     std::streambuf* old_err = std::cerr.rdbuf(devnull.rdbuf());
@@ -30,6 +30,7 @@ int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
     auto screen = ScreenInteractive::Fullscreen();
 
     TuiState st;
+    st.history_max = static_cast<std::size_t>(history_max);
     std::thread worker;
 
     auto refresh = [&] { screen.PostEvent(Event::Custom); };

@@ -12,6 +12,7 @@ Layar terdiri dari header (backend, model, jumlah tool), area chat yang otomatis
 | `/` | buka menu perintah (↑/↓ pilih, Tab atau Enter melengkapi, Esc batal) |
 | PageUp / PageDown | gulir riwayat chat |
 | Roda mouse | gulir riwayat chat |
+| ↑ / ↓ | telusuri pesan yang pernah dikirim (saat menu `/` tertutup) |
 | Ctrl+C, `exit`, `/exit` | keluar |
 | Esc (saat Luna bekerja) | batalkan giliran yang sedang berjalan |
 

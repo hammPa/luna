@@ -43,6 +43,7 @@ struct Config {
     std::string log_file;                 // kosong = tanpa file log
     std::string log_level = "info";       // debug | info | warn | error
     int log_max_kb = 1024;
+    int input_history_max = 100;   // riwayat input TUI (0 = mati)
 };
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.

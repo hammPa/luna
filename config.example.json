@@ -48,5 +48,6 @@
 
     "log_file": "/home/USER/luna-data/luna.log",
     "log_level": "info",
-    "log_max_kb": 1024
+    "log_max_kb": 1024,
+    "input_history_max": 100
 }

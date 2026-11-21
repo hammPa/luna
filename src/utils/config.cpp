@@ -105,6 +105,11 @@ Config load_config(const std::string& path) {
         if (cfg.log_max_kb < 64 || cfg.log_max_kb > 102400) {
             throw std::runtime_error("log_max_kb harus 64 sampai 102400");
         }
+
+        cfg.input_history_max = j.value("input_history_max", cfg.input_history_max);
+        if (cfg.input_history_max < 0 || cfg.input_history_max > 10000) {
+            throw std::runtime_error("input_history_max harus 0 sampai 10000");
+        }
     } catch (const json::exception& e) {
         // misalnya "model" berisi angka, bukan string
         throw std::runtime_error("Tipe field config salah: " + std::string(e.what()));

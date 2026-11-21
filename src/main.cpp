@@ -163,7 +163,8 @@ int main(int argc, char** argv) {
 
     if (mode == Mode::Tui) {
         const std::string status = app.backend->name() + " · " + app.cfg.model;
-        const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status, *app.registry);
+        const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status,
+                               *app.registry, app.cfg.input_history_max);
         logger::info("app", "berhenti");
         return rc;
     }

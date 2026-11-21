@@ -58,6 +58,41 @@ bool handle_menu(const Event& e, TuiState& st) {
     return false;
 }
 
+void push_history(TuiState& st, const std::string& msg) {
+    st.hist_pos = -1;
+    st.draft.clear();
+    if (st.history_max == 0) return;
+    if (!st.input_history.empty() && st.input_history.back() == msg) return;
+    st.input_history.push_back(msg);
+    while (st.input_history.size() > st.history_max) {
+        st.input_history.erase(st.input_history.begin());
+    }
+}
+
+// Panah atas/bawah menelusuri riwayat input. Dipanggil setelah menu "/".
+bool handle_history(const Event& e, TuiState& st) {
+    if (e != Event::ArrowUp && e != Event::ArrowDown) return false;
+    if (st.input_history.empty()) return false;
+    const int n = static_cast<int>(st.input_history.size());
+
+    if (e == Event::ArrowUp) {
+        if (st.hist_pos == -1) {
+            st.draft = st.input;
+            st.hist_pos = n - 1;
+        } else if (st.hist_pos > 0) {
+            --st.hist_pos;
+        }
+    } else {
+        if (st.hist_pos == -1) return true;
+        if (st.hist_pos < n - 1) ++st.hist_pos;
+        else st.hist_pos = -1;
+    }
+    st.input = (st.hist_pos == -1) ? st.draft
+                                   : st.input_history[static_cast<size_t>(st.hist_pos)];
+    st.cursor = static_cast<int>(st.input.size());
+    return true;
+}
+
 bool handle_scroll(const Event& ev, TuiState& st) {
     Event e = ev;   // mouse() tidak const di FTXUI 6.1.9
     const int page = std::max(3, Terminal::Size().dimy / 2);
@@ -119,6 +154,7 @@ bool handle_submit(const Event& e, TuiDeps& d) {
     st.input.clear();
     st.cursor = 0;
     if (msg.empty()) return true;
+    push_history(st, msg);
     if (msg == "exit" || msg == "quit" || msg == "/exit" || msg == "/quit") {
         d.exit_loop();
         return true;
@@ -177,7 +213,20 @@ bool handle_event(const Event& e, TuiDeps& d) {
     if (e == Event::Custom) return false;
     if (handle_permission(e, d)) return true;
     if (handle_cancel(e, d)) return true;
+
+    // Jika teks sudah diedit setelah dipanggil dari riwayat, berhenti menelusuri.
+    TuiState& st = d.st;
+    if (st.hist_pos != -1 &&
+        (st.hist_pos >= static_cast<int>(st.input_history.size()) ||
+         st.input != st.input_history[static_cast<size_t>(st.hist_pos)])) {
+        st.hist_pos = -1;
+    }
+
+    // Selama menelusuri riwayat, panah milik riwayat, bukan menu "/".
+    if (st.hist_pos != -1 && handle_history(e, st)) return true;
+
     if (handle_menu(e, d.st)) return true;
+    if (handle_history(e, d.st)) return true;
     if (handle_scroll(e, d.st)) return true;
     return handle_submit(e, d);
 }

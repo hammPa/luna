@@ -26,6 +26,11 @@ struct TuiState {
     int menu_sel = 0;
     std::string menu_input;        // untuk mereset pilihan saat input berubah
 
+    std::vector<std::string> input_history;   // pesan yang pernah dikirim (lama -> baru)
+    int hist_pos = -1;                        // -1 = tidak sedang menelusuri
+    std::string draft;                        // ketikan sebelum menelusuri
+    std::size_t history_max = 100;
+
     void add(const std::string& role, const std::string& msg) {
         std::lock_guard<std::mutex> lk(mu);
         lines.push_back({role, tui_text::sanitize(msg)});

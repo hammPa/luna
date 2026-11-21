@@ -67,7 +67,8 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 
     "log_file": "/home/USER/luna-data/luna.log",
     "log_level": "info",
-    "log_max_kb": 1024
+    "log_max_kb": 1024,
+    "input_history_max": 100,
 }
 ```
 
@@ -99,6 +100,7 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `log_file` | Path file log (pakai path absolut). **Kosong = tidak ada file log**; WARN dan ERROR tetap tampil di stderr |
 | `log_level` | `debug`, `info`, `warn`, atau `error`. Default `info`. Menentukan level minimum yang ditulis ke file |
 | `log_max_kb` | Ukuran maksimum file log (64 sampai 102400, default 1024). Saat penuh, file diganti nama menjadi `<log_file>.1` (satu cadangan, cadangan lama ditimpa) |
+| `input_history_max` | Jumlah pesan yang diingat untuk panah atas/bawah di TUI, 0 sampai 10000. Default 100, `0` = mati. Hanya di memori, hilang saat program ditutup |
 
 Contoh provider:
 
