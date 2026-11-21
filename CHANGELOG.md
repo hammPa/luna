@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.5
+Tool file baru: `create_dir`, `append_file` (menambah di akhir file yang sudah ada), dan `move_file` (pindah atau ganti nama, tidak pernah menimpa)
+
 ## 1.5.4
 Tool `calculator` (parser ekspresi sendiri, tanpa eval) dan `system_info` (memori, CPU, disk, baterai, uptime dari `/proc` dan `/sys`)
 

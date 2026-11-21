@@ -7,6 +7,9 @@
 #include "tools/builtin/files/delete_file.hpp"
 #include "tools/builtin/files/search_files.hpp"
 #include "tools/builtin/files/send_file.hpp"
+#include "tools/builtin/files/create_dir.hpp"
+#include "tools/builtin/files/append_file.hpp"
+#include "tools/builtin/files/move_file.hpp"
 // system
 #include "tools/builtin/system/get_time.hpp"
 #include "tools/builtin/system/open_url.hpp"

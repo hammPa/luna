@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.5.4**
+**Versi saat ini: 1.5.5**
 
 [Riwayat versi](CHANGELOG.md)
 
@@ -23,6 +23,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 - Indikator konteks: seberapa penuh percakapan terhadap `max_context`, di header TUI dan setelah tiap balasan di CLI
 - **Render markdown**: tebal, miring, kode, daftar, judul, dan blok kode berbahasa di TUI, CLI, dan Telegram; tombol batal giliran dan /copy.
 - **Kalkulator dan info sistem**: `calculator` dan `system_info` (memori, CPU, disk, baterai, uptime), keduanya Safe dan tanpa program luar.
+- **Tool file lengkap**: selain baca, buat, ubah, dan hapus, kini ada `create_dir`, `append_file`, dan `move_file` (tidak menimpa), semuanya dibatasi workspace dan sistem izin.
 
 ## Prasyarat
 
@@ -115,10 +116,11 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 - [x] TUI: riwayat input (panah atas/bawah)
 - [x] Config `providers` dengan banyak model
 - [x] Ganti model saat berjalan (`/model`)
+- [x] `calculator` dan `system_info`
+- [x] `create_dir`, `append_file`, `move_file`
+- [ ] Tool tambahan: kontrol volume dan media
 - [ ] TUI: aktivitas tool di layar, seleksi mouse otomatis.
 - [ ] Streaming balasan
-- [x] `calculator` dan `system_info`
-- [ ] Tool tambahan: kontrol volume dan media, `move_file`, `create_dir`, `append_file`
 - [ ] `open_url` dengan pilihan browser dan jendela baru
 - [ ] Tes otomatis (target CMake) dan CI
 - [ ] Service systemd, pengingat, dan tugas terjadwal
