@@ -12,6 +12,8 @@
 #include "tools/builtin/system/open_url.hpp"
 #include "tools/builtin/system/open_app.hpp"
 #include "tools/builtin/system/close_app.hpp"
+#include "tools/builtin/system/calculator.hpp"
+#include "tools/builtin/system/system_info.hpp"
 // window (Hyprland)
 #include "tools/builtin/window/switch_workspace.hpp"
 #include "tools/builtin/window/list_windows.hpp"

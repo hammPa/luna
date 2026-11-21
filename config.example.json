@@ -45,6 +45,7 @@
     "profiles": {
         "umum":    ["*"],
         "file":    ["get_time", "list_dir", "read_file", "create_file", "patch_file", "send_file"],
+        "system":  ["calculator", "system_info", "list_dir", "read_file", "create_file", "patch_file", "send_file"],
         "jendela": ["list_windows", "focus_window", "switch_workspace", "close_window"]
     },
 

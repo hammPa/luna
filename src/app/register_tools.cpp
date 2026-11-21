@@ -10,6 +10,8 @@ namespace {
 void register_basic_tools(ToolRegistry& registry) {
     registry.add(std::make_unique<GetTimeTool>());
     registry.add(std::make_unique<OpenUrlTool>());
+    registry.add(std::make_unique<CalculatorTool>());
+    registry.add(std::make_unique<SystemInfoTool>());
 }
 
 void register_window_tools(ToolRegistry& registry, bool telegram_mode) {

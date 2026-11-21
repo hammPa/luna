@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.4
+Tool `calculator` (parser ekspresi sendiri, tanpa eval) dan `system_info` (memori, CPU, disk, baterai, uptime dari `/proc` dan `/sys`)
+
 ## 1.5.3
 Refactor `load_config` tanpa perubahan perilaku: dipecah jadi header per bagian di `utils/config/` (apps, profiles, telegram, providers, search, misc, reject_old)
 

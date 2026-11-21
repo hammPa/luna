@@ -5,6 +5,8 @@
 | Tool | Fungsi | Risiko | Aktif jika |
 |---|---|---|---|
 | `get_time` | Tanggal dan jam sekarang | Safe | selalu |
+| `calculator` | Hitung ekspresi: `+ - * / % ^`, kurung, `pi`, `e`, `sqrt`, `abs`, `sin`, `cos`, `tan` (radian), `log`, `ln`, `floor`, `ceil`, `round`, `min`, `max`. Maks 200 karakter | Safe | selalu |
+| `system_info` | Memori, beban CPU, disk `/`, baterai, uptime. Argumen `section`: `all`, `memory`, `cpu`, `disk`, `battery`, `uptime`. Tanpa hostname | Safe | selalu |
 | `list_dir` | Isi folder workspace | Safe | `allowed_dirs` terisi |
 | `read_file` | Baca file teks (maks 64 KB, tolak file biner) | Safe | `allowed_dirs` terisi |
 | `create_file` | Buat file baru (gagal jika sudah ada) | Write | `allowed_dirs` terisi |
@@ -63,7 +65,7 @@ Semua tool lewat satu gerbang di `ToolRegistry::run`; tool tidak bisa melewatiny
 
 | Risiko | Contoh | Perilaku default |
 |---|---|---|
-| Safe | `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window`, `search_files`, `weather`, `search_web` | Langsung jalan |
+| Safe | `get_time`, `calculator`, `system_info`, `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window`, `search_files`, `weather`, `search_web` | Langsung jalan |
 | Write | `create_file`, `patch_file` | Tanya; boleh "always" untuk sesi ini (hanya di TUI dan Cli) |
 | Destructive | menimpa file, `delete_file`, `close_app`, `close_window` | Selalu tanya, **tanpa "always"** |
 | Execute | `open_url`, `open_app` | Selalu tanya, **tanpa "always"** |
@@ -72,7 +74,7 @@ Semua tool lewat satu gerbang di `ToolRegistry::run`; tool tidak bisa melewatiny
 
 Di TUI, pertanyaan izin tampil sebagai kotak dialog; di CLI sebagai prompt `[y]a sekali / [a]lways / [n]o`. Keduanya memakai aturan yang sama: tanpa jawaban atau program ditutup = ditolak.
 
-Aturan keras: kebijakan `allow` untuk Destructive/Execute/Privileged dipaksa menjadi `ask`. Tanpa jawaban, EOF, atau error berarti **ditolak**.
+Aturan keras: kebijakan `allow` untuk Destructive/Execute/Privileged dipaksa menjadi `ask`. Tanpa jawaban, EOF, atau error berarti **ditolak**. Tool yang dinonaktifkan (`/tool off`, atau di luar profil aktif) tidak dikirim ke model dan ditolak sebelum mencapai gerbang izin.
 
 Lapis keamanan lain:
 
