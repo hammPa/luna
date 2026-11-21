@@ -1,5 +1,4 @@
 #include "app/chat_session.hpp"
-#include "app/commands.hpp"
 #include "app/run_cli.hpp"
 #include "app/model_switcher.hpp"
 #include "llm/backend_factory.hpp"
@@ -11,8 +10,6 @@
 #include "tools/tool_registry.hpp"
 #include "tools/path_guard.hpp"
 
-#include "tools/builtin_tools.hpp"
-
 #include "telegram/telegram_loop.hpp"
 #include "telegram/telegram_prompter.hpp"
 
@@ -23,9 +20,6 @@
 #include "tui/tui_app.hpp"
 #include "tui/tui_prompter.hpp"
 
-#include "utils/ctx_format.hpp"
-#include "utils/markdown_ansi.hpp"
-#include "utils/cancel.hpp"
 
 #include "app/register_tools.hpp"
 
@@ -35,8 +29,6 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <csignal>
-#include <atomic>
 #include <vector>
 
 

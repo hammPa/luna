@@ -28,6 +28,7 @@ luna/
     │   ├── render/       tui_render, tui_markdown, tui_wrap, tui_utf8, tui_text, theme
     │   └── input/        slash_menu, clipboard, input_history, copy_command
     └── utils/              http (post, post_multipart, get), config, log, string_utils, process_utils, format_utils, ctx_format, markdown, markdown_ansi, cancel
+        └── config/       reject_old, apps, profiles, telegram, providers, search, misc (header per bagian load_config)
 ```
 
 Aturan dependensi: `llm/` tidak mengenal `memory/`, `tools/`, atau `telegram/`. Format khusus provider hanya ada di `openai_backend.cpp`. Detail provider tidak boleh bocor ke `main.cpp`.

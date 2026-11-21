@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.3
+Refactor `load_config` tanpa perubahan perilaku: dipecah jadi header per bagian di `utils/config/` (apps, profiles, telegram, providers, search, misc, reject_old)
+
 ## 1.5.2
 Refactor folder `tui/` tanpa perubahan perilaku: dipecah jadi subfolder `core/`, `render/`, `input/`; `tui_markdown.cpp` dipecah (`tui_utf8`, `tui_wrap`), `tui_events.cpp` dipecah (`input_history`, `copy_command`); tidak ada file di atas 200 baris
 
