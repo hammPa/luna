@@ -2,8 +2,10 @@
 
 #include "utils/string_utils.hpp"
 #include "utils/ctx_format.hpp"
+#include "tools/tool_registry.hpp"
 
 #include <iostream>
+#include <sstream>
 
 namespace {
 
@@ -66,10 +68,35 @@ void cmd_ctx(const ChatSession& session, std::ostream& out) {
     out << '\n';
 }
 
+void cmd_tools(const ToolRegistry& tools, std::ostream& out) {
+    const auto all = tools.list();
+    std::size_t on = 0;
+    for (const auto& t : all) {
+        out << (t.enabled ? "[on ] " : "[off] ") << t.name << '\n';
+        if (t.enabled) ++on;
+    }
+    out << on << " dari " << all.size() << " tool aktif\n\n";
+}
+
+void cmd_tool(const std::string& arg, ToolRegistry& tools, std::ostream& out) {
+    std::istringstream ss(arg);
+    std::string action, name, extra;
+    ss >> action >> name;
+    if ((action != "on" && action != "off") || name.empty() || (ss >> extra)) {
+        out << "Format: /tool on|off nama\n\n";
+        return;
+    }
+    if (!tools.set_enabled(name, action == "on")) {
+        out << "Tool tidak ada: " << name << " (lihat /tools)\n\n";
+        return;
+    }
+    out << name << (action == "on" ? " diaktifkan" : " dimatikan") << ".\n\n";
+}
+
 }  // namespace
 
 bool handle_command(const std::string& line, Memory& memory, ChatSession& session,
-                    std::ostream& out){
+                    std::ostream& out, ToolRegistry* tools){
     if (line.rfind("/remember ", 0) == 0) {
         cmd_remember(line.substr(10), memory, out);
         return true;
@@ -89,6 +116,14 @@ bool handle_command(const std::string& line, Memory& memory, ChatSession& sessio
     }
     if (line == "/ctx") {
         cmd_ctx(session, out);
+        return true;
+    }
+    if (tools && line == "/tools") {
+        cmd_tools(*tools, out);
+        return true;
+    }
+    if (tools && (line == "/tool" || line.rfind("/tool ", 0) == 0)) {
+        cmd_tool(line.substr(5), *tools, out);
         return true;
     }
 

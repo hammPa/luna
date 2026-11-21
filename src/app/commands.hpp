@@ -6,8 +6,10 @@
 #include <iosfwd>
 #include <string>
 
+class ToolRegistry;
+
 // Mengembalikan true jika `line` adalah perintah slash dan sudah ditangani.
 // Output ditulis ke `out` (bukan langsung cout) supaya mudah dialihkan nanti.
 
 bool handle_command(const std::string& line, Memory& memory, ChatSession& session,
-                    std::ostream& out);
+                    std::ostream& out, ToolRegistry* tools = nullptr);

@@ -45,6 +45,8 @@ Hal yang perlu diketahui:
 | `/clear` | Hapus riwayat percakapan (RAM dan database). **Fakta tidak ikut terhapus** |
 | `/start`, `/help` | Bantuan singkat (Telegram) |
 | `/ctx` | tampilkan ukuran konteks yang terpakai |
+| `/tools` | Daftar semua tool dan statusnya (`[on ]`/`[off]`) |
+| `/tool on\|off nama` | Hidupkan atau matikan satu tool. Tool nonaktif tidak dikirim ke model. Hanya berlaku selama program jalan; saat restart semua tool kembali aktif |
 | `/copy` | Salin balasan Luna terakhir ke clipboard (OSC 52) |
 | `/copy code` | Salin hanya blok kode terakhir dari balasan Luna |
 | `exit` / `quit` | Keluar (TUI dan CLI). Di CLI juga Ctrl+D; di TUI juga Ctrl+C |

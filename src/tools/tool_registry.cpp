@@ -21,6 +21,7 @@ void ToolRegistry::add(std::unique_ptr<Tool> tool) {
 nlohmann::json ToolRegistry::schema() const {
     nlohmann::json arr = nlohmann::json::array();
     for (const auto& [name, tool] : tools_) {
+        if (disabled_.count(name) != 0) continue;
         arr.push_back({
             {"name", name},
             {"description", tool->description()},
@@ -35,6 +36,10 @@ std::string ToolRegistry::run(const std::string& name, const nlohmann::json& arg
     if (it == tools_.end()) {
         logger::warn("tool", "tool tidak ada: " + name);
         return "Error: tool '" + name + "' tidak ada.";
+    }
+    if (disabled_.count(name) != 0) {
+        logger::warn("tool", "tool nonaktif: " + name);
+        return "Error: tool '" + name + "' sedang dinonaktifkan.";
     }
     Tool& tool = *it->second;
 
@@ -74,7 +79,23 @@ std::string ToolRegistry::run(const std::string& name, const nlohmann::json& arg
 std::string ToolRegistry::describe_all() const {
     std::string out;
     for (const auto& [name, tool] : tools_) {
+        if (disabled_.count(name) != 0) continue;
         out += "- " + name + ": " + tool->description() + "\n";
     }
     return out;
+}
+
+std::vector<ToolStatus> ToolRegistry::list() const {
+    std::vector<ToolStatus> out;
+    for (const auto& [name, tool] : tools_) {
+        out.push_back({name, disabled_.count(name) == 0});
+    }
+    return out;
+}
+
+bool ToolRegistry::set_enabled(const std::string& name, bool enabled) {
+    if (tools_.count(name) == 0) return false;
+    if (enabled) disabled_.erase(name);
+    else disabled_.insert(name);
+    return true;
 }

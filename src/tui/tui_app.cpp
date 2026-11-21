@@ -20,7 +20,7 @@
 using namespace ftxui;
 
 int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
-            const std::string& status) {
+            const std::string& status, ToolRegistry& tools) {
     // Semua penulis std::cerr (peringatan di mana pun) tidak boleh merusak layar.
     std::ofstream devnull("/dev/null");
     std::streambuf* old_err = std::cerr.rdbuf(devnull.rdbuf());
@@ -49,8 +49,8 @@ int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
         return render_screen(st, session, prompter, status, input_box->Render());
     });
 
-    TuiDeps deps{session, memory, prompter, st, refresh,
-                 [&] { screen.ExitLoopClosure()(); }, worker};
+        TuiDeps deps{session, memory, prompter, st, refresh,
+                 [&] { screen.ExitLoopClosure()(); }, worker, tools};
     auto app = CatchEvent(view, [&](Event e) { return handle_event(e, deps); });
 
     // Menggerakkan indikator berputar hanya saat sibuk.

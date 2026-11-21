@@ -10,6 +10,8 @@
 #include <functional>
 #include <thread>
 
+class ToolRegistry;
+
 struct TuiDeps {
     ChatSession& session;
     Memory& memory;
@@ -18,6 +20,7 @@ struct TuiDeps {
     std::function<void()> refresh;     // minta render ulang
     std::function<void()> exit_loop;   // keluar dari screen.Loop
     std::thread& worker;               // thread giliran chat
+    ToolRegistry& tools;
 };
 
 // true = event sudah ditangani (tidak diteruskan ke kotak input).

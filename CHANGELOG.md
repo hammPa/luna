@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.4.0
+Hidup/matikan tool saat berjalan: `/tools` dan `/tool on|off nama` (TUI dan CLI); tool nonaktif tidak dikirim ke model sehingga hemat token
+
 ## 1.3.2
 Refactor `main.cpp` tanpa perubahan perilaku: `Mode` dipakai di semua tempat, argumen dipisah ke `parse_mode()`, objek dikumpulkan di `struct App` dengan `start_app()`, mode CLI pindah ke `app/run_cli.cpp`, dan `register_*_tools` pindah ke `app/register_tools.cpp`
 

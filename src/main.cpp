@@ -130,9 +130,7 @@ int main(int argc, char** argv) {
     const std::string config_path = (argc > 1) ? argv[1] : "config.json";
 
     Mode mode = Mode::Tui;
-    if(!parse_mode(argc, argv, mode)) { // jika false berarti 0, negasi menjadi true, jadi akan selesai dengan return 1
-        return 1;
-    }
+    if(!parse_mode(argc, argv, mode)) return 1; // jika false berarti 0, negasi menjadi true, jadi akan selesai dengan return 1
 
     if (mode == Mode::Tui && (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))) {
         std::cerr << "TUI butuh terminal interaktif. Pakai --cli untuk input dari pipe.\n";
@@ -140,9 +138,7 @@ int main(int argc, char** argv) {
     }
 
     App app;
-    if(!start_app(app, config_path, mode)) { // jika false berarti 0, negsi jadi true, jadi akan selesai program dengan return 1
-        return 1;
-    }
+    if(!start_app(app, config_path, mode)) return 1; // jika false berarti 0, negsi jadi true, jadi akan selesai program dengan return 1
 
 
     if (mode == Mode::Telegram) {
@@ -159,10 +155,10 @@ int main(int argc, char** argv) {
     if (mode == Mode::Tui) {
         const std::string status = app.backend->name() + " · " + app.cfg.model + " · " +
                                    std::to_string(app.registry->schema().size()) + " tool";
-        const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status);
+        const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status, *app.registry);
         logger::info("app", "berhenti");
         return rc;
     }
 
-    return run_cli(*app.backend, app.cfg, *app.session, *app.memory);
+        return run_cli(*app.backend, app.cfg, *app.session, *app.memory, *app.registry);
 }

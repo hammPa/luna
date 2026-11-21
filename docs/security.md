@@ -30,7 +30,7 @@
 - Aktivitas tool (nama, durasi) belum tampil di layar chat; lihat `luna.log`.
 - Menutup TUI saat panggilan LLM berjalan menunggu panggilan itu selesai.
 - `max_context` hanya untuk tampilan; riwayat dipangkas berdasarkan jumlah pesan.
-- Tool belum bisa dihidupkan/dimatikan saat berjalan.
+- Status hidup/mati tool tidak disimpan ke config; saat restart semua tool kembali aktif.
 - Pembatalan giliran (Esc/Ctrl+C) belum tersedia di Telegram.
 - `/copy` hanya ada di TUI.
 - Blok kode di TUI tidak dibungkus; baris yang lebih lebar dari layar terpotong.

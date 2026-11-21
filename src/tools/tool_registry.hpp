@@ -5,7 +5,14 @@
 
 #include <map>
 #include <memory>
+#include <set>
+#include <vector>
 #include <string>
+
+struct ToolStatus {
+    std::string name;
+    bool enabled;
+};
 
 class ToolRegistry {
 public:
@@ -26,8 +33,15 @@ public:
 
     // Ringkasan "- nama: deskripsi" per tool, untuk system prompt.
     std::string describe_all() const;
+
+    // Daftar semua tool terdaftar (urut nama) beserta status aktifnya.
+    std::vector<ToolStatus> list() const;
+
+    // Hidup/matikan tool. false = nama tidak terdaftar.
+    bool set_enabled(const std::string& name, bool enabled);
     
 private:
     PermissionGate& gate_;
     std::map<std::string, std::unique_ptr<Tool>> tools_;
+    std::set<std::string> disabled_;
 };

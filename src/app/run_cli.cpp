@@ -28,7 +28,7 @@ void on_sigint(int) {
 }  // namespace
 
 int run_cli(const LLMBackend& backend, const Config& cfg,
-            ChatSession& session, Memory& memory) {
+            ChatSession& session, Memory& memory, ToolRegistry& tools){
     std::cout << "Backend: " << backend.name() << " | Model: " << cfg.model
               << " | Riwayat dimuat: " << session.history_size() << " pesan"
               << "\nPerintah: /remember kunci=nilai, /facts, exit\n";
@@ -47,7 +47,7 @@ int run_cli(const LLMBackend& backend, const Config& cfg,
         if (line == "exit" || line == "quit") break;
         if (line.empty()) continue;
 
-        if (line[0] == '/' && handle_command(line, memory, session, std::cout)) continue;
+        if (line[0] == '/' && handle_command(line, memory, session, std::cout, &tools)) continue;
 
         g_busy = 1;
         try {
