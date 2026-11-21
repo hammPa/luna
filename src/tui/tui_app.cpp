@@ -1,6 +1,7 @@
 #include "tui/tui_app.hpp"
 
 #include "app/chat_session.hpp"
+#include "app/model_switcher.hpp"
 #include "memory/memory.hpp"
 #include "tui/theme.hpp"
 #include "tui/tui_events.hpp"
@@ -8,7 +9,6 @@
 #include "tui/tui_state.hpp"
 #include "tui/tui_view.hpp"
 #include "tools/tool_registry.hpp"
-
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
@@ -22,7 +22,8 @@
 using namespace ftxui;
 
 int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
-            const std::string& status, ToolRegistry& tools, int history_max) {
+            const std::string& status, ToolRegistry& tools, int history_max,
+            ModelSwitcher* models) {
     // Semua penulis std::cerr (peringatan di mana pun) tidak boleh merusak layar.
     std::ofstream devnull("/dev/null");
     std::streambuf* old_err = std::cerr.rdbuf(devnull.rdbuf());
@@ -51,13 +52,14 @@ int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
     auto view = Renderer(input_box, [&] {
         std::size_t on = 0;
         for (const auto& t : tools.list()) if (t.enabled) ++on;
-        std::string head = status + " · " + std::to_string(on) + " tool";
+        std::string head = models ? models->label() : status;
+        head += " · " + std::to_string(on) + " tool";
         if (!tools.active_profile().empty()) head += " · profil " + tools.active_profile();
         return render_screen(st, session, prompter, head, input_box->Render());
     });
 
-        TuiDeps deps{session, memory, prompter, st, refresh,
-                 [&] { screen.ExitLoopClosure()(); }, worker, tools};
+    TuiDeps deps{session, memory, prompter, st, refresh,
+                 [&] { screen.ExitLoopClosure()(); }, worker, tools, models};
     auto app = CatchEvent(view, [&](Event e) { return handle_event(e, deps); });
 
     // Menggerakkan indikator berputar hanya saat sibuk.

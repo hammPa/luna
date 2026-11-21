@@ -34,3 +34,4 @@
 - Pembatalan giliran (Esc/Ctrl+C) belum tersedia di Telegram.
 - `/copy` hanya ada di TUI.
 - Blok kode di TUI tidak dibungkus; baris yang lebih lebar dari layar terpotong.
+- Ganti model lewat `/model` tidak disimpan ke config dan tidak tersedia di Telegram.

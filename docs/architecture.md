@@ -9,7 +9,7 @@ luna/
 ├── third_party/            nlohmann/json.hpp, SQLiteCpp/
 └── src/
     ├── main.cpp            pemilihan mode, wiring objek
-    ├── app/                ChatSession (loop chat + tool), commands, run_cli, register_tools
+    ├── app/                ChatSession (loop chat + tool), commands, run_cli, register_tools, model_switcher
     ├── llm/                tipe, interface LLMBackend, OpenAIBackend, factory
     ├── memory/             Memory (SQLite: messages, facts)
     ├── search/             SearchProvider, TavilyProvider, search_factory
@@ -40,4 +40,4 @@ Daftar tool di system prompt dan schema untuk model dibuat otomatis dari registr
 
 ## Menambah backend LLM
 
-Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.cpp`. `main` tidak berubah.
+Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.cpp`. `main` tidak berubah. Provider dan model baru cukup didaftarkan di `providers` pada `config.json`; `/model` memakai daftar itu lewat antarmuka `ModelSwitcher` (diimplementasikan `App` di `main.cpp`), jadi `commands.cpp` tidak mengenal `backend_factory`.

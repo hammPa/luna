@@ -11,6 +11,7 @@
 #include <thread>
 
 class ToolRegistry;
+class ModelSwitcher;
 
 struct TuiDeps {
     ChatSession& session;
@@ -21,6 +22,7 @@ struct TuiDeps {
     std::function<void()> exit_loop;   // keluar dari screen.Loop
     std::thread& worker;               // thread giliran chat
     ToolRegistry& tools;
+    ModelSwitcher* models;             // nullptr = /model tidak tersedia
 };
 
 // true = event sudah ditangani (tidak diteruskan ke kotak input).

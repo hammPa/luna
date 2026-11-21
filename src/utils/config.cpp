@@ -8,6 +8,21 @@
 
 using json = nlohmann::json;
 
+void apply_model(Config& cfg, std::size_t index) {
+    const ModelChoice& c = cfg.models.at(index);
+    const ProviderEntry& p = cfg.providers.at(c.provider);
+
+    cfg.active_index    = index;
+    cfg.active_provider = c.provider;
+    cfg.model           = c.model;
+    cfg.backend         = p.backend;
+    cfg.base_url        = p.base_url;
+    cfg.api_key_env     = p.api_key_env;
+    cfg.timeout_sec     = p.timeout_sec;
+    cfg.max_context     = c.max_context;
+    cfg.history_limit   = c.history_limit;
+}
+
 Config load_config(const std::string& path) {
     std::ifstream file(path);
     if (!file) {
@@ -75,8 +90,9 @@ Config load_config(const std::string& path) {
             cfg.telegram_allowed_users = j.at("telegram_allowed_users").get<std::vector<long long>>();
         }
 
-        // Provider + model aktif. Provider: backend, base_url, api_key_env, timeout_sec.
+        // Provider: backend, base_url, api_key_env, timeout_sec, models.
         // Model: max_context, history_limit.
+        // Semua provider dan model divalidasi saat start, supaya /model aman dipakai.
         if (!j.contains("providers") || !j.at("providers").is_object() ||
             j.at("providers").empty()) {
             throw std::runtime_error("'providers' wajib (object, minimal satu provider); "
@@ -92,41 +108,65 @@ Config load_config(const std::string& path) {
         }
 
         const auto& provs = j.at("providers");
-        if (!provs.contains(act_prov) || !provs.at(act_prov).is_object()) {
+        for (const auto& [pname, pv] : provs.items()) {
+            if (!pv.is_object()) {
+                throw std::runtime_error("providers." + pname + " harus object");
+            }
+            for (const char* key : {"backend", "base_url", "api_key_env", "timeout_sec", "models"}) {
+                if (!pv.contains(key)) {
+                    throw std::runtime_error("providers." + pname + " wajib punya '" + key + "'");
+                }
+            }
+            if (!pv.at("models").is_object()) {
+                throw std::runtime_error("providers." + pname + ".models harus object");
+            }
+
+            ProviderEntry pe;
+            pe.backend     = pv.at("backend").get<std::string>();
+            pe.base_url    = pv.at("base_url").get<std::string>();
+            pe.api_key_env = pv.at("api_key_env").get<std::string>();
+            pe.timeout_sec = pv.at("timeout_sec").get<long>();
+            cfg.providers[pname] = std::move(pe);
+
+            for (const auto& [mname, mv] : pv.at("models").items()) {
+                if (!mv.is_object()) {
+                    throw std::runtime_error("model '" + mname + "' harus object "
+                                             "(isi max_context dan history_limit)");
+                }
+                for (const char* key : {"max_context", "history_limit"}) {
+                    if (!mv.contains(key)) {
+                        throw std::runtime_error("model '" + mname + "' wajib punya '" + key + "'");
+                    }
+                }
+                ModelChoice mc;
+                mc.provider    = pname;
+                mc.model       = mname;
+                mc.max_context = mv.at("max_context").get<int>();
+
+                const int hl = mv.at("history_limit").get<int>();
+                if (hl < 1) {
+                    throw std::runtime_error("history_limit harus >= 1");
+                }
+                mc.history_limit = static_cast<std::size_t>(hl);
+                cfg.models.push_back(std::move(mc));
+            }
+        }
+
+        if (cfg.providers.count(act_prov) == 0) {
             throw std::runtime_error("active.provider '" + act_prov + "' tidak ada di providers");
         }
-        const auto& p = provs.at(act_prov);
-        if (!p.contains("models") || !p.at("models").is_object() ||
-            !p.at("models").contains(act_model) || !p.at("models").at(act_model).is_object()) {
+        bool found = false;
+        for (std::size_t i = 0; i < cfg.models.size(); ++i) {
+            if (cfg.models[i].provider == act_prov && cfg.models[i].model == act_model) {
+                apply_model(cfg, i);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
             throw std::runtime_error("model '" + act_model + "' tidak terdaftar di providers." +
                                      act_prov + ".models (isi max_context dan history_limit)");
         }
-        const auto& m = p.at("models").at(act_model);
-
-        for (const char* key : {"backend", "base_url", "api_key_env", "timeout_sec"}) {
-            if (!p.contains(key)) {
-                throw std::runtime_error("providers." + act_prov + " wajib punya '" + key + "'");
-            }
-        }
-        for (const char* key : {"max_context", "history_limit"}) {
-            if (!m.contains(key)) {
-                throw std::runtime_error("model '" + act_model + "' wajib punya '" + key + "'");
-            }
-        }
-
-        cfg.active_provider = act_prov;
-        cfg.model           = act_model;
-        cfg.backend         = p.at("backend").get<std::string>();
-        cfg.base_url        = p.at("base_url").get<std::string>();
-        cfg.api_key_env     = p.at("api_key_env").get<std::string>();
-        cfg.timeout_sec     = p.at("timeout_sec").get<long>();
-        cfg.max_context     = m.at("max_context").get<int>();
-
-        const int hl = m.at("history_limit").get<int>();
-        if (hl < 1) {
-            throw std::runtime_error("history_limit harus >= 1");
-        }
-        cfg.history_limit = static_cast<std::size_t>(hl);
 
         cfg.max_send_mb = j.value("max_send_mb", cfg.max_send_mb);
         if (cfg.max_send_mb < 1 || cfg.max_send_mb > 50) {

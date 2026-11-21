@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.5.0**
+**Versi saat ini: 1.5.1**
 
 [Riwayat versi](CHANGELOG.md)
 
@@ -15,6 +15,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 - **Permission gate**: setiap tool punya tingkat risiko; yang berisiko ditanyakan dulu.
 - **Hidup/matikan tool**: `/tools` dan `/tool on|off nama` di TUI dan CLI. Tool yang dimatikan tidak dikirim ke model, jadi hemat token.
 - **Profil tool**: kumpulan tool aktif yang diberi nama di `config.json` (mis. `file`, `jendela`), diganti dengan `/profile nama`. Hemat token karena hanya tool yang perlu yang dikirim ke model.
+- **Ganti model saat berjalan**: `/model` menampilkan semua pasangan provider dan model di config, `/model nomor` berpindah tanpa restart. Riwayat tetap dipakai; jika gagal (mis. API key belum di-export), model lama tetap aktif.
 - **Kontrol desktop Hyprland**: pindah workspace, lihat jendela yang terbuka, pindah fokus, dan tutup satu jendela atau seluruh aplikasi.
 - **Mode Telegram**: kendalikan Luna dari HP dengan allowlist user, persetujuan y/n, dan kode TOTP untuk aksi berbahaya. Mendukung reverse proxy.
 - **Cuaca dan pencarian web**: `weather` (tanpa API key) dan `search_web` lewat provider yang bisa diganti. Hasil web ditandai sebagai data tak tepercaya.
@@ -112,7 +113,7 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 - [x] Profil tool (kumpulan tool aktif yang bisa diganti)
 - [x] TUI: riwayat input (panah atas/bawah)
 - [x] Config `providers` dengan banyak model
-- [ ] Ganti model saat berjalan (`/model`)
+- [x] Ganti model saat berjalan (`/model`)
 - [ ] TUI: aktivitas tool di layar, seleksi mouse otomatis.
 - [ ] Streaming balasan
 - [ ] Tool tambahan: `calculator`, `save_fact`, info sistem, kontrol volume dan media, `move_file`, `create_dir`, `append_file`

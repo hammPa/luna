@@ -113,6 +113,8 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `log_max_kb` | Ukuran maksimum file log (64 sampai 102400, default 1024). Saat penuh, file diganti nama menjadi `<log_file>.1` (satu cadangan, cadangan lama ditimpa) |
 | `input_history_max` | Jumlah pesan yang diingat untuk panah atas/bawah di TUI, 0 sampai 10000. Default 100, `0` = mati. Hanya di memori, hilang saat program ditutup |
 
+Semua provider dan model di `providers` divalidasi saat start, bukan hanya yang aktif, supaya `/model` aman dipakai. Provider yang tidak dipakai tetapi kekurangan field wajib membuat Luna gagal start. Env var API key baru dicek saat berpindah ke model itu, jadi provider lain boleh belum di-export. Pilihan lewat `/model` tidak disimpan; saat restart Luna kembali ke `active`.
+
 Contoh provider:
 
 | Provider | `base_url` |

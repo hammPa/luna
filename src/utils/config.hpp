@@ -10,6 +10,22 @@ struct AppEntry {
     std::string process;   // nama proses untuk menutup (kosong = tidak bisa ditutup)
 };
 
+// Pengaturan satu provider (dipakai bersama oleh semua modelnya).
+struct ProviderEntry {
+    std::string backend;
+    std::string base_url;
+    std::string api_key_env;
+    long timeout_sec = 30;
+};
+
+// Satu pasangan provider + model yang bisa dipilih.
+struct ModelChoice {
+    std::string provider;
+    std::string model;
+    int max_context = 4096;
+    std::size_t history_limit = 20;
+};
+
 struct Config {
     std::string backend = "openai";
     std::string model;
@@ -20,6 +36,10 @@ struct Config {
     std::size_t history_limit = 20;
     int max_context = 4096; 
     long timeout_sec = 30;
+
+    std::map<std::string, ProviderEntry> providers;   // semua provider di config
+    std::vector<ModelChoice> models;                  // semua pasangan provider+model
+    std::size_t active_index = 0;                     // indeks di `models` yang aktif
     
     std::string memory_db = "memory.db";
     std::vector<std::string> allowed_dirs;
@@ -49,3 +69,8 @@ struct Config {
 
 // Lempar std::runtime_error jika file tidak ada, JSON rusak, atau field tidak valid.
 Config load_config(const std::string& path);
+
+// Isi field datar (model, backend, base_url, api_key_env, timeout_sec, max_context,
+// history_limit, active_provider, active_index) dari cfg.models[index].
+// Lempar std::out_of_range jika index tidak valid.
+void apply_model(Config& cfg, std::size_t index);

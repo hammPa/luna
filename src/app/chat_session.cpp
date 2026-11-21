@@ -27,9 +27,9 @@ int estimate_context(const std::vector<Message>& history, const nlohmann::json& 
 
 ChatSession::ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory,
                          ToolRegistry& tools)
-    : cfg_(cfg), backend_(backend), memory_(memory), tools_(tools) {
+    : cfg_(cfg), backend_(&backend), memory_(memory), tools_(tools) {
     history_.push_back(make_msg("system", cfg_.system_prompt));
-    backend_.set_cancel_flag(&cancel_);
+    backend_->set_cancel_flag(&cancel_);
 }
 
 void ChatSession::load() {
@@ -100,7 +100,7 @@ std::string ChatSession::send(const std::string& user_text) {
             const auto t0 = std::chrono::steady_clock::now();
 
             const auto schema = tools_.schema();
-            LLMResponse r = backend_.chat(history_, schema);
+            LLMResponse r = backend_->chat(history_, schema);
             
             const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                                 std::chrono::steady_clock::now() - t0).count();
@@ -163,4 +163,12 @@ void ChatSession::clear() {
     memory_.clear_messages();   // DB dulu: kalau gagal, RAM tidak berubah
     history_.resize(1);         // sisakan system prompt di indeks 0
     ctx_used_ = -1;             // konteks sudah kosong; angka lama tidak berlaku
+}
+
+void ChatSession::set_backend(LLMBackend& backend) {
+    backend_ = &backend;
+    backend_->set_cancel_flag(&cancel_);
+    ctx_used_ = -1;             // angka konteks milik model lama tidak berlaku
+    ctx_estimated_ = false;
+    trim_history();             // history_limit model baru bisa lebih kecil
 }

@@ -50,6 +50,8 @@ Hal yang perlu diketahui:
 | `/tool on\|off nama` | Hidupkan atau matikan satu tool. Tool nonaktif tidak dikirim ke model. Hanya berlaku selama program jalan; saat restart semua tool kembali aktif |
 | `/profile` | Daftar profil tool; yang aktif ditandai `*` |
 | `/profile nama` | Ganti profil: hanya tool di profil itu yang aktif (menghapus perubahan `/tool` sebelumnya). Header menampilkan jumlah tool dan nama profil |
+| `/model` | Daftar semua pasangan provider dan model (bernomor, urut abjad provider lalu model); yang aktif ditandai `*` |
+| `/model nomor` | Pindah ke model itu tanpa restart. Riwayat tetap dipakai, `max_context` dan `history_limit` mengikuti model baru, angka konteks diulang dari awal. Jika gagal dibuat, model lama tetap aktif. Hanya berlaku selama program jalan |
 | `/copy` | Salin balasan Luna terakhir ke clipboard (OSC 52) |
 | `/copy code` | Salin hanya blok kode terakhir dari balasan Luna |
 | `exit` / `quit` | Keluar (TUI dan CLI). Di CLI juga Ctrl+D; di TUI juga Ctrl+C |

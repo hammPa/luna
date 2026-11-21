@@ -41,3 +41,5 @@ nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
 | `Gagal start: field '...' tingkat atas tidak dipakai lagi` | Config format lama; pindahkan ke `providers` dan `active` (lihat `config.example.json`) |
 | `Gagal start: model '...' tidak terdaftar` | Model di `active` belum ada di `providers.<nama>.models` |
 | `Gagal start: model '...' wajib punya 'max_context'` | Isi `max_context` dan `history_limit` di entri `models` |
+| `Gagal ganti model: Environment variable ... belum di-set` | API key provider tujuan belum di-export di terminal ini; model lama tetap aktif |
+| `/model` tidak dikenali di Telegram | Memang tidak tersedia di Telegram; ganti `active` di config lalu restart |

@@ -1,5 +1,6 @@
 #include "app/commands.hpp"
 
+#include "app/model_switcher.hpp"
 #include "utils/string_utils.hpp"
 #include "utils/ctx_format.hpp"
 #include "tools/tool_registry.hpp"
@@ -119,10 +120,46 @@ void cmd_profile(const std::string& arg, ToolRegistry& tools, std::ostream& out)
     out << '\n';
 }
 
+void cmd_model(const std::string& arg, ModelSwitcher& models, std::ostream& out) {
+    const std::string a = trim(arg);
+    if (a.empty()) {
+        const auto& list = models.choices();
+        for (std::size_t i = 0; i < list.size(); ++i) {
+            const ModelChoice& c = list[i];
+            out << (i == models.active() ? "* " : "  ") << (i + 1) << ". "
+                << c.provider << " · " << c.model
+                << " (ctx " << c.max_context << ", riwayat " << c.history_limit << ")\n";
+        }
+        out << "\nGanti: /model nomor\n\n";
+        return;
+    }
+    if (a.size() > 6 || a.find_first_not_of("0123456789") != std::string::npos) {
+        out << "Format: /model nomor (lihat /model)\n\n";
+        return;
+    }
+    const std::size_t n = std::stoul(a);
+    if (n < 1 || n > models.choices().size()) {
+        out << "Nomor tidak ada: " << a << " (lihat /model)\n\n";
+        return;
+    }
+    if (n - 1 == models.active()) {
+        out << "Sudah memakai model ini.\n\n";
+        return;
+    }
+    const std::string err = models.switch_to(n - 1);
+    if (!err.empty()) {
+        out << "Gagal ganti model: " << err << "\nTetap memakai model sebelumnya.\n\n";
+        return;
+    }
+    const ModelChoice& c = models.choices()[n - 1];
+    out << "Model aktif: " << c.provider << " · " << c.model << "\n"
+        << "(angka konteks diulang dari awal; riwayat tetap dipakai)\n\n";
+}
+
 }  // namespace
 
 bool handle_command(const std::string& line, Memory& memory, ChatSession& session,
-                    std::ostream& out, ToolRegistry* tools){
+                    std::ostream& out, ToolRegistry* tools, ModelSwitcher* models){
     if (line.rfind("/remember ", 0) == 0) {
         cmd_remember(line.substr(10), memory, out);
         return true;
@@ -154,6 +191,10 @@ bool handle_command(const std::string& line, Memory& memory, ChatSession& sessio
     }
     if (tools && (line == "/profile" || line.rfind("/profile ", 0) == 0)) {
         cmd_profile(line == "/profile" ? "" : line.substr(9), *tools, out);
+        return true;
+    }
+    if (models && (line == "/model" || line.rfind("/model ", 0) == 0)) {
+        cmd_model(line == "/model" ? "" : line.substr(7), *models, out);
         return true;
     }
 

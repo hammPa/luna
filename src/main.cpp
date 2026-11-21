@@ -1,6 +1,7 @@
 #include "app/chat_session.hpp"
 #include "app/commands.hpp"
 #include "app/run_cli.hpp"
+#include "app/model_switcher.hpp"
 #include "llm/backend_factory.hpp"
 #include "memory/memory.hpp"
 #include "utils/config.hpp"
@@ -36,6 +37,7 @@
 #include <string>
 #include <csignal>
 #include <atomic>
+#include <vector>
 
 
 enum class Mode { Tui, Cli, Telegram };
@@ -59,7 +61,8 @@ bool parse_mode(int argc, char** argv, Mode& mode) {
 
 // Urutan deklarasi penting: yang dirujuk ChatSession harus
 // dideklarasikan lebih dulu (dihancurkan belakangan).
-struct App {
+// App juga ModelSwitcher: /model memanggil switch_to() lewat antarmuka itu.
+struct App : ModelSwitcher {
     Config cfg;
     std::unique_ptr<LLMBackend> backend;
     std::unique_ptr<Memory> memory;
@@ -76,7 +79,32 @@ struct App {
     std::unique_ptr<PermissionGate> gate;
     std::unique_ptr<ToolRegistry> registry;
     std::unique_ptr<ChatSession> session;   // paling akhir = dihancurkan paling dulu
+
+    const std::vector<ModelChoice>& choices() const override { return cfg.models; }
+    std::size_t active() const override { return cfg.active_index; }
+    std::string label() const override { return cfg.active_provider + " · " + cfg.model; }
+    std::string switch_to(std::size_t index) override;
 };
+
+// Ganti model saat berjalan. Gagal = cfg dan backend lama tidak berubah.
+std::string App::switch_to(std::size_t index) {
+    try {
+        Config next = cfg;
+        apply_model(next, index);
+        std::unique_ptr<LLMBackend> fresh = create_backend(next);
+
+        cfg = next;                      // ChatSession merujuk cfg ini (max_context, history_limit)
+        session->set_backend(*fresh);    // sesi pindah dulu...
+        backend = std::move(fresh);      // ...baru backend lama dibuang
+
+        logger::info("app", "ganti model provider=" + cfg.active_provider +
+                            " model=" + cfg.model);
+    } catch (const std::exception& e) {
+        logger::warn("app", std::string("ganti model gagal: ") + e.what());
+        return e.what();
+    }
+    return "";
+}
 
 bool start_app(App& app, const std::string& config_path, Mode mode) {
     Prompter& prompter = (mode == Mode::Telegram) ? static_cast<Prompter&>(app.telegram_prompter)
@@ -139,7 +167,9 @@ int main(int argc, char** argv) {
     const std::string config_path = (argc > 1) ? argv[1] : "config.json";
 
     Mode mode = Mode::Tui;
-    if(!parse_mode(argc, argv, mode)) return 1; // jika false berarti 0, negasi menjadi true, jadi akan selesai dengan return 1
+    if(!parse_mode(argc, argv, mode)) { // jika false berarti 0, negasi menjadi true, jadi akan selesai dengan return 1
+        return 1;
+    }
 
     if (mode == Mode::Tui && (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))) {
         std::cerr << "TUI butuh terminal interaktif. Pakai --cli untuk input dari pipe.\n";
@@ -147,7 +177,9 @@ int main(int argc, char** argv) {
     }
 
     App app;
-    if(!start_app(app, config_path, mode)) return 1; // jika false berarti 0, negsi jadi true, jadi akan selesai program dengan return 1
+    if(!start_app(app, config_path, mode)) { // jika false berarti 0, negsi jadi true, jadi akan selesai program dengan return 1
+        return 1;
+    }
 
 
     if (mode == Mode::Telegram) {
@@ -164,10 +196,10 @@ int main(int argc, char** argv) {
     if (mode == Mode::Tui) {
         const std::string status = app.backend->name() + " · " + app.cfg.model;
         const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status,
-                               *app.registry, app.cfg.input_history_max);
+                               *app.registry, app.cfg.input_history_max, &app);
         logger::info("app", "berhenti");
         return rc;
     }
 
-    return run_cli(*app.backend, app.cfg, *app.session, *app.memory, *app.registry);
+    return run_cli(*app.backend, app.cfg, *app.session, *app.memory, *app.registry, app);
 }

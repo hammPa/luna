@@ -171,7 +171,7 @@ bool handle_submit(const Event& e, TuiDeps& d) {
         std::ostringstream out;
         bool handled = false;
         try {
-            handled = handle_command(msg, d.memory, d.session, out, &d.tools);
+            handled = handle_command(msg, d.memory, d.session, out, &d.tools, d.models);
         } catch (const std::exception& ex) {
             out << "Error: " << ex.what();
             handled = true;
@@ -225,8 +225,8 @@ bool handle_event(const Event& e, TuiDeps& d) {
     // Selama menelusuri riwayat, panah milik riwayat, bukan menu "/".
     if (st.hist_pos != -1 && handle_history(e, st)) return true;
 
-    if (handle_menu(e, d.st)) return true;
-    if (handle_history(e, d.st)) return true;
-    if (handle_scroll(e, d.st)) return true;
+    if (handle_menu(e, st)) return true;
+    if (handle_history(e, st)) return true;
+    if (handle_scroll(e, st)) return true;
     return handle_submit(e, d);
 }

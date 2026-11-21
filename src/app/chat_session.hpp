@@ -38,6 +38,11 @@ public:
     // Hapus riwayat di RAM dan database. Fakta tidak disentuh.
     void clear();
 
+    // Ganti backend (ganti model saat berjalan). Hanya panggil saat tidak ada
+    // giliran yang berjalan. Backend lama boleh dibuang setelah ini kembali.
+    // max_context dan history_limit ikut berubah lewat cfg yang dirujuk.
+    void set_backend(LLMBackend& backend);
+
     // Batalkan giliran yang sedang berjalan (aman dipanggil dari thread lain).
     void cancel() { cancel_ = true; }
     std::atomic<bool>* cancel_flag() { return &cancel_; }
@@ -50,7 +55,7 @@ private:
     static constexpr int kMaxToolRounds = 5;
 
     const Config& cfg_;
-    LLMBackend& backend_;
+    LLMBackend* backend_;
     Memory& memory_;
     ToolRegistry& tools_;
     std::vector<Message> history_;  // indeks 0 selalu system prompt
