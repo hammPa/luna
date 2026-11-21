@@ -19,6 +19,7 @@ inline const std::vector<SlashCmd>& slash_commands() {
         {"/ctx",      "ukuran konteks yang terpakai", false},
         {"/tools",    "daftar tool dan statusnya", false},
         {"/tool",     "hidup/matikan tool: /tool on|off nama", true},
+        {"/profile",  "ganti profil tool: /profile nama", true},
         {"/copy",     "salin balasan terakhir (/copy code = blok kode)", false},
         {"/exit",     "keluar dari Luna", false},
     };

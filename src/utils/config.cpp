@@ -56,6 +56,22 @@ Config load_config(const std::string& path) {
             }
         }
 
+        if (j.contains("profiles")) {
+            const auto& p = j.at("profiles");
+            if (!p.is_object()) throw std::runtime_error("'profiles' harus object");
+            for (const auto& [name, v] : p.items()) {
+                if (!v.is_array()) {
+                    throw std::runtime_error("profil '" + name + "' harus array nama tool");
+                }
+                cfg.profiles[name] = v.get<std::vector<std::string>>();
+            }
+        }
+        cfg.active_profile = j.value("active_profile", cfg.active_profile);
+        if (!cfg.active_profile.empty() && cfg.profiles.count(cfg.active_profile) == 0) {
+            throw std::runtime_error("active_profile '" + cfg.active_profile +
+                                     "' tidak ada di profiles");
+        }
+
         cfg.telegram_token_env = j.value("telegram_token_env", cfg.telegram_token_env);
         cfg.telegram_api_base_url = j.value("telegram_api_base_url", cfg.telegram_api_base_url);
         if (j.contains("telegram_allowed_users")) {

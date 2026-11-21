@@ -99,3 +99,25 @@ bool ToolRegistry::set_enabled(const std::string& name, bool enabled) {
     else disabled_.insert(name);
     return true;
 }
+
+void ToolRegistry::set_profiles(std::map<std::string, std::vector<std::string>> profiles) {
+    profiles_ = std::move(profiles);
+}
+
+bool ToolRegistry::use_profile(const std::string& name, std::vector<std::string>& unknown) {
+    auto it = profiles_.find(name);
+    if (it == profiles_.end()) return false;
+
+    unknown.clear();
+    const auto& names = it->second;
+    disabled_.clear();
+    if (std::find(names.begin(), names.end(), "*") == names.end()) {
+        for (const auto& [tool_name, tool] : tools_) disabled_.insert(tool_name);
+        for (const auto& n : names) {
+            if (tools_.count(n) == 0) unknown.push_back(n);
+            else disabled_.erase(n);
+        }
+    }
+    active_profile_ = name;
+    return true;
+}

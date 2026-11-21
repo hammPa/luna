@@ -75,6 +75,7 @@ void cmd_tools(const ToolRegistry& tools, std::ostream& out) {
         out << (t.enabled ? "[on ] " : "[off] ") << t.name << '\n';
         if (t.enabled) ++on;
     }
+    if (!tools.active_profile().empty()) out << "Profil: " << tools.active_profile() << '\n';
     out << on << " dari " << all.size() << " tool aktif\n\n";
 }
 
@@ -91,6 +92,31 @@ void cmd_tool(const std::string& arg, ToolRegistry& tools, std::ostream& out) {
         return;
     }
     out << name << (action == "on" ? " diaktifkan" : " dimatikan") << ".\n\n";
+}
+
+void cmd_profile(const std::string& arg, ToolRegistry& tools, std::ostream& out) {
+    const std::string name = trim(arg);
+    if (name.empty()) {
+        if (tools.profiles().empty()) {
+            out << "Tidak ada profil di config.\n\n";
+            return;
+        }
+        for (const auto& [pname, list] : tools.profiles()) {
+            out << (pname == tools.active_profile() ? "* " : "  ") << pname;
+            if (list.size() == 1 && list[0] == "*") out << " (semua tool)\n";
+            else out << " (" << list.size() << " tool)\n";
+        }
+        out << '\n';
+        return;
+    }
+    std::vector<std::string> unknown;
+    if (!tools.use_profile(name, unknown)) {
+        out << "Profil tidak ada: " << name << " (lihat /profile)\n\n";
+        return;
+    }
+    out << "Profil '" << name << "' aktif.\n";
+    for (const auto& n : unknown) out << "(tool tidak terdaftar, dilewati: " << n << ")\n";
+    out << '\n';
 }
 
 }  // namespace
@@ -124,6 +150,10 @@ bool handle_command(const std::string& line, Memory& memory, ChatSession& sessio
     }
     if (tools && (line == "/tool" || line.rfind("/tool ", 0) == 0)) {
         cmd_tool(line.substr(5), *tools, out);
+        return true;
+    }
+    if (tools && (line == "/profile" || line.rfind("/profile ", 0) == 0)) {
+        cmd_profile(line == "/profile" ? "" : line.substr(9), *tools, out);
         return true;
     }
 

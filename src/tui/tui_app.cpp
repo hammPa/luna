@@ -7,6 +7,8 @@
 #include "tui/tui_prompter.hpp"
 #include "tui/tui_state.hpp"
 #include "tui/tui_view.hpp"
+#include "tools/tool_registry.hpp"
+
 
 #include "ftxui/component/component.hpp"
 #include "ftxui/component/screen_interactive.hpp"
@@ -46,7 +48,11 @@ int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
     auto input_box = Input(&st.input, "ketik pesan...", input_opt);
 
     auto view = Renderer(input_box, [&] {
-        return render_screen(st, session, prompter, status, input_box->Render());
+        std::size_t on = 0;
+        for (const auto& t : tools.list()) if (t.enabled) ++on;
+        std::string head = status + " · " + std::to_string(on) + " tool";
+        if (!tools.active_profile().empty()) head += " · profil " + tools.active_profile();
+        return render_screen(st, session, prompter, head, input_box->Render());
     });
 
         TuiDeps deps{session, memory, prompter, st, refresh,

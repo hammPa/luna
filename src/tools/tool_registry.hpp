@@ -40,8 +40,19 @@ public:
     // Hidup/matikan tool. false = nama tidak terdaftar.
     bool set_enabled(const std::string& name, bool enabled);
     
+    // Profil = kumpulan tool aktif. Dipanggil sekali saat start.
+    void set_profiles(std::map<std::string, std::vector<std::string>> profiles);
+
+    // Hanya tool di profil yang aktif ("*" = semua). false = profil tidak ada.
+    // `unknown` diisi nama di profil yang tidak terdaftar.
+    bool use_profile(const std::string& name, std::vector<std::string>& unknown);
+
+    const std::map<std::string, std::vector<std::string>>& profiles() const { return profiles_; }
+    const std::string& active_profile() const { return active_profile_; }
 private:
     PermissionGate& gate_;
     std::map<std::string, std::unique_ptr<Tool>> tools_;
     std::set<std::string> disabled_;
+    std::map<std::string, std::vector<std::string>> profiles_;
+    std::string active_profile_;
 };

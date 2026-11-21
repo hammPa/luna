@@ -101,6 +101,15 @@ bool start_app(App& app, const std::string& config_path, Mode mode) {
 
         register_tools(*app.registry, app.cfg, app.guard, file_sink, app.search_provider.get(), mode == Mode::Telegram);
 
+        app.registry->set_profiles(app.cfg.profiles);
+        if (!app.cfg.active_profile.empty()) {
+            std::vector<std::string> unknown;
+            app.registry->use_profile(app.cfg.active_profile, unknown);
+            for (const auto& n : unknown) {
+                logger::warn("app", "profil: tool tidak terdaftar: " + n);
+            }
+        }
+
         app.session = std::make_unique<ChatSession>(app.cfg, *app.backend, *app.memory, *app.registry);
         app.session->load();
 
@@ -153,12 +162,11 @@ int main(int argc, char** argv) {
     }
 
     if (mode == Mode::Tui) {
-        const std::string status = app.backend->name() + " · " + app.cfg.model + " · " +
-                                   std::to_string(app.registry->schema().size()) + " tool";
+        const std::string status = app.backend->name() + " · " + app.cfg.model;
         const int rc = run_tui(*app.session, *app.memory, app.tui_prompter, status, *app.registry);
         logger::info("app", "berhenti");
         return rc;
     }
 
-        return run_cli(*app.backend, app.cfg, *app.session, *app.memory, *app.registry);
+    return run_cli(*app.backend, app.cfg, *app.session, *app.memory, *app.registry);
 }

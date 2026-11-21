@@ -51,6 +51,12 @@ Di TUI dan CLI: `/tools` menampilkan status, `/tool off nama` dan `/tool on nama
 
 Perintah ini tidak ada di Telegram, dan model tidak bisa mengubah status tool. Perubahan tidak disimpan; saat Luna dijalankan ulang semua tool kembali aktif.
 
+### Profil
+
+Profil adalah nama untuk sekumpulan tool aktif, diatur lewat `profiles` dan `active_profile` di `config.json` (lihat [Konfigurasi](config.md)). `/profile` menampilkan daftar, `/profile nama` menggantinya, dan `/tool on|off` tetap bisa dipakai di atasnya. Profil mempersempit apa yang dilihat model; tool aktif tetap melewati sistem izin.
+
+Telegram memakai `active_profile` dari config saat start dan tidak bisa menggantinya. Pilihan profil lewat `/profile` tidak disimpan; saat restart Luna kembali ke `active_profile`.
+
 ## Sistem izin (permission)
 
 Semua tool lewat satu gerbang di `ToolRegistry::run`; tool tidak bisa melewatinya.

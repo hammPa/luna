@@ -26,6 +26,13 @@
         "files":    {"run": "nautilus", "process": "nautilus"}
     },
 
+    "active_profile": "umum",
+    "profiles": {
+        "umum":    ["*"],
+        "file":    ["get_time", "list_dir", "read_file", "create_file", "patch_file", "send_file"],
+        "jendela": ["list_windows", "focus_window", "switch_workspace", "close_window"]
+    },
+
     "telegram_allowed_users": [123456789],
     "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
     "telegram_api_base_url": "",

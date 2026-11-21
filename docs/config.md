@@ -44,6 +44,13 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
         "files":    {"run": "nautilus", "process": "nautilus"}
     },
 
+    "active_profile": "umum",
+    "profiles": {
+        "umum":    ["*"],
+        "file":    ["get_time", "list_dir", "read_file", "create_file", "patch_file", "send_file"],
+        "jendela": ["list_windows", "focus_window", "switch_workspace", "close_window"]
+    },
+
     "telegram_allowed_users": [123456789],
     "telegram_token_env": "LUNA_ASSISTANT_BOT_TOKEN",
     "telegram_api_base_url": "",
@@ -78,6 +85,8 @@ Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 | `allowed_dirs` | Folder yang boleh disentuh tool file. Entri pertama = workspace utama. **Kosong = tool file tidak aktif.** Pakai path lengkap (`~` tidak diperluas) |
 | `permissions` | Kebijakan per tingkat risiko: `allow`, `ask`, `deny` |
 | `apps` | Allowlist aplikasi untuk `open_app` dan `close_app`. `run` = program untuk membuka, `process` = nama proses untuk menutup (tanpa `process` = tidak bisa ditutup). Tanpa spasi/argumen |
+| `active_profile` | Profil tool yang aktif saat start. Kosong = semua tool aktif. Harus ada di `profiles`, kalau tidak Luna gagal start |
+| `profiles` | Nama profil → daftar nama tool yang aktif. `"*"` = semua tool. Nama yang tidak terdaftar (mis. tool Hyprland di luar Hyprland) dilewati dan dicatat WARN di log. Tanpa blok ini semua tool aktif |
 | `telegram_allowed_users` | User ID numerik yang boleh memakai bot. **Kosong = mode Telegram menolak start** |
 | `telegram_token_env` | Nama env var token bot |
 | `telegram_api_base_url` | Base URL API Telegram. **Kosong = `https://api.telegram.org`.** Isi dengan URL reverse proxy bila jaringanmu tidak bisa menjangkau Telegram. Harus `https://` |

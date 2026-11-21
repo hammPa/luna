@@ -25,6 +25,9 @@ struct Config {
     std::map<std::string, std::string> permissions;  // "write" -> "ask"
     std::map<std::string, AppEntry> apps;  // nama app -> entry
 
+    std::string active_profile;   // kosong = semua tool aktif
+    std::map<std::string, std::vector<std::string>> profiles;   // nama -> daftar tool ("*" = semua)
+
     std::vector<long long> telegram_allowed_users;
     std::string telegram_token_env = "LUNA_ASSISTANT_BOT_TOKEN";
     std::string telegram_api_base_url = "https://api.telegram.org";

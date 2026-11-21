@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.4.1
+Profil tool: `profiles` dan `active_profile` di config, `/profile` untuk melihat dan mengganti profil (TUI dan CLI); header TUI menampilkan jumlah tool aktif dan nama profil secara langsung
+
 ## 1.4.0
 Hidup/matikan tool saat berjalan: `/tools` dan `/tool on|off nama` (TUI dan CLI); tool nonaktif tidak dikirim ke model sehingga hemat token
 

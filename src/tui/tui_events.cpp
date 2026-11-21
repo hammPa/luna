@@ -135,7 +135,7 @@ bool handle_submit(const Event& e, TuiDeps& d) {
         std::ostringstream out;
         bool handled = false;
         try {
-                        handled = handle_command(msg, d.memory, d.session, out, &d.tools);
+            handled = handle_command(msg, d.memory, d.session, out, &d.tools);
         } catch (const std::exception& ex) {
             out << "Error: " << ex.what();
             handled = true;
