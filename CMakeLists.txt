@@ -42,12 +42,16 @@ add_executable(luna
     src/utils/log.cpp
     src/tui/tui_app.cpp
     src/tui/tui_prompter.cpp
-    src/tui/tui_render.cpp
-    src/tui/tui_view.cpp
-    src/tui/tui_events.cpp
-    src/tui/tui_markdown.cpp
+    src/tui/render/tui_render.cpp
+    src/tui/core/tui_view.cpp
+    src/tui/core/tui_events.cpp
+    src/tui/render/tui_markdown.cpp
     src/app/run_cli
     src/app/register_tools.cpp
+    src/tui/render/tui_utf8.cpp
+    src/tui/render/tui_wrap.cpp
+    src/tui/input/input_history.cpp
+    src/tui/input/copy_command.cpp
 )
 
 target_include_directories(luna PRIVATE

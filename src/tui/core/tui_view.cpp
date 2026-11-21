@@ -1,11 +1,11 @@
-#include "tui/tui_view.hpp"
+#include "tui/core/tui_view.hpp"
 
 #include "app/chat_session.hpp"
-#include "tui/slash_menu.hpp"
-#include "tui/theme.hpp"
+#include "tui/input/slash_menu.hpp"
+#include "tui/render/theme.hpp"
 #include "tui/tui_prompter.hpp"
-#include "tui/tui_render.hpp"
-#include "tui/tui_state.hpp"
+#include "tui/render/tui_render.hpp"
+#include "tui/core/tui_state.hpp"
 
 #include "ftxui/screen/terminal.hpp"
 

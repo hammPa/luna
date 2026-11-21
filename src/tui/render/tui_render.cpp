@@ -1,7 +1,7 @@
-#include "tui/tui_render.hpp"
-#include "tui/theme.hpp"
-#include "tui/tui_text.hpp"
-#include "tui/tui_markdown.hpp"
+#include "tui/render/tui_render.hpp"
+#include "tui/render/theme.hpp"
+#include "tui/render/tui_text.hpp"
+#include "tui/render/tui_markdown.hpp"
 #include "utils/ctx_format.hpp"
 
 using namespace ftxui;

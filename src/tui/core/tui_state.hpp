@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tui/tui_render.hpp"
-#include "tui/tui_text.hpp"
+#include "tui/render/tui_render.hpp"
+#include "tui/render/tui_text.hpp"
 
 #include <atomic>
 #include <mutex>

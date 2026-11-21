@@ -23,7 +23,10 @@ luna/
     ├── telegram/           client, prompter, loop, file_sink, telegram_format
     ├── auth/               TotpVerifier
     ├── tui/                tui_app, tui_view, tui_events, tui_state, tui_render, tui_text,
-│               tui_prompter, theme, slash_menu, tui_markdown, clipboard
+    ├── tui/                tui_app, tui_prompter
+    │   ├── core/         tui_state, tui_events, tui_view
+    │   ├── render/       tui_render, tui_markdown, tui_wrap, tui_utf8, tui_text, theme
+    │   └── input/        slash_menu, clipboard, input_history, copy_command
     └── utils/              http (post, post_multipart, get), config, log, string_utils, process_utils, format_utils, ctx_format, markdown, markdown_ansi, cancel
 ```
 

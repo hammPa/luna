@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.2
+Refactor folder `tui/` tanpa perubahan perilaku: dipecah jadi subfolder `core/`, `render/`, `input/`; `tui_markdown.cpp` dipecah (`tui_utf8`, `tui_wrap`), `tui_events.cpp` dipecah (`input_history`, `copy_command`); tidak ada file di atas 200 baris
+
 ## 1.5.1
 Ganti model saat berjalan: `/model` menampilkan daftar bernomor, `/model nomor` berpindah (TUI dan CLI); header TUI menampilkan provider dan model aktif secara langsung; semua provider dan model di config divalidasi saat start
 

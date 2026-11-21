@@ -1,58 +1,13 @@
-#include "tui/tui_markdown.hpp"
+#include "tui/render/tui_wrap.hpp"
 
-#include "tui/theme.hpp"
-#include "tui/tui_text.hpp"
-#include "utils/markdown.hpp"
+#include "tui/render/theme.hpp"
+#include "tui/render/tui_utf8.hpp"
 
 #include <algorithm>
-#include <string>
-#include <vector>
 
 using namespace ftxui;
 
 namespace {
-
-// Lebar tampil satu codepoint UTF-8 (kasar: CJK dan emoji = 2, sisanya 1).
-int cp_width(unsigned cp) {
-    if (cp < 0x20) return 0;
-    if ((cp >= 0x1100 && cp <= 0x115F) || (cp >= 0x2E80 && cp <= 0xA4CF) ||
-        (cp >= 0xAC00 && cp <= 0xD7A3) || (cp >= 0xF900 && cp <= 0xFAFF) ||
-        (cp >= 0xFE30 && cp <= 0xFE6F) || (cp >= 0xFF00 && cp <= 0xFF60) ||
-        (cp >= 0x1F300 && cp <= 0x1FAFF)) {
-        return 2;
-    }
-    if (cp >= 0x0300 && cp <= 0x036F) return 0;   // tanda gabung
-    return 1;
-}
-
-// Pecah string UTF-8 jadi potongan per codepoint (string asli + lebarnya).
-struct Glyph { std::string s; int w; };
-
-std::vector<Glyph> glyphs(const std::string& in) {
-    std::vector<Glyph> out;
-    std::size_t i = 0;
-    while (i < in.size()) {
-        const unsigned char c = static_cast<unsigned char>(in[i]);
-        std::size_t len = 1;
-        unsigned cp = c;
-        if (c >= 0xF0 && i + 3 < in.size() + 0) { len = 4; cp = c & 0x07; }
-        else if (c >= 0xE0) { len = 3; cp = c & 0x0F; }
-        else if (c >= 0xC0) { len = 2; cp = c & 0x1F; }
-        if (i + len > in.size()) len = 1;
-        for (std::size_t k = 1; k < len; ++k) {
-            cp = (cp << 6) | (static_cast<unsigned char>(in[i + k]) & 0x3F);
-        }
-        out.push_back({in.substr(i, len), cp_width(cp)});
-        i += len;
-    }
-    return out;
-}
-
-int text_width(const std::string& s) {
-    int w = 0;
-    for (const auto& g : glyphs(s)) w += g.w;
-    return w;
-}
 
 // Token berstyle: satu kata (atau potongan kata panjang) dengan gayanya.
 struct Tok {
@@ -183,74 +138,11 @@ Elements wrap_tokens(const std::vector<Tok>& raw, Color base, int width,
     return rows;
 }
 
-Elements code_rows(const md::Block& b, int width) {
-    Elements rows;
-    const int inner = std::max(4, width - 2);   // spasi tepi kiri dan kanan
-    auto line = [&](const std::string& s, Color c, bool bld) {
-        Element e = text(" " + s + " ") | color(c);
-        if (bld) e = e | bold;
-        rows.push_back(hbox({e, filler()}) | bgcolor(theme::code_bg));
-    };
-    if (!b.label.empty()) line(b.label, theme::accent, true);
-    for (const auto& ln : tui_text::split_lines(b.code)) {
-        // Baris kode dibungkus keras per kolom (tanpa menjaga kata).
-        std::string cur;
-        int w = 0;
-        bool any = false;
-        for (const auto& g : glyphs(ln)) {
-            if (w + g.w > inner && w > 0) {
-                line(cur, theme::fg, false);
-                cur.clear();
-                w = 0;
-            }
-            cur += g.s;
-            w += g.w;
-            any = true;
-        }
-        if (any || ln.empty()) line(cur, theme::fg, false);
-    }
-    return rows;
-}
-
-Elements block_rows(const md::Block& b, Color body, int width) {
-    const std::string indent(static_cast<std::size_t>(b.level) * 2, ' ');
-    switch (b.kind) {
-        case md::BlockKind::Heading:
-            return wrap_tokens(tokenize(b.spans, true), theme::accent, width, "", "",
-                               theme::accent);
-        case md::BlockKind::Bullet: {
-            const std::string p1 = indent + "• ";
-            return wrap_tokens(tokenize(b.spans, false), body, width, p1,
-                               std::string(text_width(p1), ' '), theme::accent);
-        }
-        case md::BlockKind::Numbered: {
-            const std::string p1 = indent + b.label + ". ";
-            return wrap_tokens(tokenize(b.spans, false), body, width, p1,
-                               std::string(text_width(p1), ' '), theme::accent);
-        }
-        case md::BlockKind::Quote:
-            return wrap_tokens(tokenize(b.spans, false), theme::muted, width, "▎ ", "▎ ",
-                               theme::muted);
-        case md::BlockKind::Rule:
-            return {text(std::string(static_cast<std::size_t>(std::max(3, width)), '-')) |
-                    color(theme::muted)};
-        case md::BlockKind::Blank:
-            return {text("")};
-        case md::BlockKind::Code:
-            return code_rows(b, width);
-        case md::BlockKind::Paragraph:
-            break;
-    }
-    return wrap_tokens(tokenize(b.spans, false), body, width, "", "", body);
-}
-
 }  // namespace
 
-Elements markdown_rows(const std::string& content, Color body, int width) {
-    Elements rows;
-    for (const auto& b : md::parse(content)) {
-        for (auto& r : block_rows(b, body, width)) rows.push_back(std::move(r));
-    }
-    if (rows.empty()) rows.push_back(text(""));
-    return rows;
+Elements wrap_spans(const std::vector<md::Span>& spans, bool strong, Color base, int width,
+                    const std::string& prefix_first, const std::string& prefix_rest,
+                    Color prefix_color) {
+    return wrap_tokens(tokenize(spans, strong), base, width, prefix_first, prefix_rest,
+                       prefix_color);
 }

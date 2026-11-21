@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ftxui/dom/elements.hpp"
-#include "tui/slash_menu.hpp"
+#include "tui/input/slash_menu.hpp"
 #include <vector>
 #include <string>
 

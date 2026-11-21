@@ -3,7 +3,7 @@
 #include "app/chat_session.hpp"
 #include "memory/memory.hpp"
 #include "tui/tui_prompter.hpp"
-#include "tui/tui_state.hpp"
+#include "tui/core/tui_state.hpp"
 
 #include "ftxui/component/event.hpp"
 

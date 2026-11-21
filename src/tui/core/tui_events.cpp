@@ -1,11 +1,13 @@
-#include "tui/tui_events.hpp"
+#include "tui/core/tui_events.hpp"
 
 #include "app/commands.hpp"
-#include "tui/slash_menu.hpp"
-#include "tui/tui_text.hpp"
+#include "tui/input/slash_menu.hpp"
+#include "tui/render/tui_text.hpp"
 
 #include "ftxui/screen/terminal.hpp"
-#include "tui/clipboard.hpp"
+#include "tui/input/clipboard.hpp"
+#include "tui/input/input_history.hpp"
+#include "tui/input/copy_command.hpp"
 #include "utils/cancel.hpp"
 #include "utils/markdown.hpp"
 
@@ -58,41 +60,6 @@ bool handle_menu(const Event& e, TuiState& st) {
     return false;
 }
 
-void push_history(TuiState& st, const std::string& msg) {
-    st.hist_pos = -1;
-    st.draft.clear();
-    if (st.history_max == 0) return;
-    if (!st.input_history.empty() && st.input_history.back() == msg) return;
-    st.input_history.push_back(msg);
-    while (st.input_history.size() > st.history_max) {
-        st.input_history.erase(st.input_history.begin());
-    }
-}
-
-// Panah atas/bawah menelusuri riwayat input. Dipanggil setelah menu "/".
-bool handle_history(const Event& e, TuiState& st) {
-    if (e != Event::ArrowUp && e != Event::ArrowDown) return false;
-    if (st.input_history.empty()) return false;
-    const int n = static_cast<int>(st.input_history.size());
-
-    if (e == Event::ArrowUp) {
-        if (st.hist_pos == -1) {
-            st.draft = st.input;
-            st.hist_pos = n - 1;
-        } else if (st.hist_pos > 0) {
-            --st.hist_pos;
-        }
-    } else {
-        if (st.hist_pos == -1) return true;
-        if (st.hist_pos < n - 1) ++st.hist_pos;
-        else st.hist_pos = -1;
-    }
-    st.input = (st.hist_pos == -1) ? st.draft
-                                   : st.input_history[static_cast<size_t>(st.hist_pos)];
-    st.cursor = static_cast<int>(st.input.size());
-    return true;
-}
-
 bool handle_scroll(const Event& ev, TuiState& st) {
     Event e = ev;   // mouse() tidak const di FTXUI 6.1.9
     const int page = std::max(3, Terminal::Size().dimy / 2);
@@ -113,36 +80,6 @@ bool handle_cancel(const Event& e, TuiDeps& d) {
         d.st.add("info", "Membatalkan giliran...");
     }
     return true;
-}
-
-void do_copy(TuiState& st, bool code_only) {
-    std::string reply;
-    {
-        std::lock_guard<std::mutex> lk(st.mu);
-        for (auto it = st.lines.rbegin(); it != st.lines.rend(); ++it) {
-            if (it->role == "luna") { reply = it->text; break; }
-        }
-    }
-    if (reply.empty()) {
-        st.add("info", "Belum ada balasan Luna untuk disalin.");
-        return;
-    }
-    std::string payload = reply;
-    if (code_only) {
-        payload.clear();
-        for (const auto& b : md::parse(reply)) {
-            if (b.kind == md::BlockKind::Code) payload = b.code;   // yang terakhir
-        }
-        if (payload.empty()) {
-            st.add("info", "Balasan terakhir tidak punya blok kode.");
-            return;
-        }
-    }
-    if (clipboard::copy(payload)) {
-        st.add("info", "Tersalin " + std::to_string(payload.size()) + " karakter ke clipboard.");
-    } else {
-        st.add("info", "Gagal menyalin (kosong atau lebih dari 100000 karakter).");
-    }
 }
 
 bool handle_submit(const Event& e, TuiDeps& d) {
