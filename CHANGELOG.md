@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.10
+Tool baru grep_files: mencari teks di dalam isi file workspace.
+
 ## 1.5.9
 Perapian: pesan error perintah terlihat di TUI, /help menyesuaikan antarmuka, include tidak terpakai dihapus, dan cacat docs diperbaiki.
 

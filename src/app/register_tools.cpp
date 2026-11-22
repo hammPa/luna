@@ -44,6 +44,7 @@ void register_file_tools(ToolRegistry& registry, const Config& cfg,
     registry.add(std::make_unique<CreateDirTool>(*guard));
     registry.add(std::make_unique<AppendFileTool>(*guard));
     registry.add(std::make_unique<MoveFileTool>(*guard));
+    registry.add(std::make_unique<GrepFilesTool>(*guard));
     registry.add(std::make_unique<SearchFilesTool>(*guard));
     registry.add(std::make_unique<SendFileTool>(
         *guard, file_sink, static_cast<std::uintmax_t>(cfg.max_send_mb) * 1024 * 1024));

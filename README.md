@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.5.9**
+**Versi saat ini: 1.5.10**
 
 [Riwayat versi](CHANGELOG.md)
 
@@ -26,6 +26,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 - **Tool file lengkap**: selain baca, buat, ubah, dan hapus, kini ada `create_dir`, `append_file`, dan `move_file` (tidak menimpa), semuanya dibatasi workspace dan sistem izin.
 - **Retry rate limit**: request yang kena rate limit (429) dicoba ulang otomatis (maks 2 kali, tunggu sampai 20 detik). Di TUI dan CLI ada indikator "coba ulang N/2 dalam X dtk", dan Esc / Ctrl+C tetap bisa membatalkan. Byte UTF-8 rusak tidak lagi menggagalkan giliran.
 - **Aktivitas tool di layar**: selama tool berjalan, baris `luna` menampilkan "menjalankan nama_tool...". Setelah selesai, satu baris `info` mencatat hasilnya (`✓ nama · N ms`, `✗ nama · gagal`, atau `✗ nama · ditolak`) di TUI dan CLI.
+- **Cari isi file**: `grep_files` mencari teks di dalam isi file workspace dan subfolder (teks biasa, bukan regex). Hanya membaca, dan melewati file biner, symlink, serta file rahasia.
 
 ## Prasyarat
 
@@ -122,6 +123,7 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 - [x] `create_dir`, `append_file`, `move_file`
 - [x] Retry otomatis rate limit (429) dengan indikator, tahan UTF-8 rusak
 - [x] TUI dan CLI: aktivitas tool di layar
+- [x] `grep_files` (cari isi file)
 - [ ] Tool tambahan: kontrol volume dan media
 - [ ] `fetch_url` (baca isi halaman, dengan pengaman SSRF)
 - [ ] TUI: seleksi mouse otomatis.

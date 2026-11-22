@@ -24,11 +24,12 @@
 | `focus_window` | Pindah fokus: arah (`left`, `right`, `up`, `down`) atau alamat jendela dari `list_windows` | Safe | sesi Hyprland dan `hyprctl` ada |
 | `close_window` | Tutup **satu jendela** (yang fokus atau lewat alamat), bukan seluruh aplikasi | Destructive | sesi Hyprland dan `hyprctl` ada |
 | `search_files` | Cari file berdasarkan potongan nama (hasil dengan ukuran; file rahasia disembunyikan) | Safe | `allowed_dirs` terisi |
+| `grep_files` | Cari **teks di dalam isi** file di workspace dan subfolder (teks biasa, tidak peka huruf besar/kecil, bukan regex). Hasil `path:baris: isi`, maksimal 50. Melewati file biner, file di atas 1 MB, symlink, dan file rahasia | Safe | `allowed_dirs` terisi |
 | `send_file` | Kirim 1-5 file ke pengguna. Telegram: diunggah ke chat. Terminal: hanya menunjukkan lokasi | Exfiltrate (Telegram) / Safe (terminal) | `allowed_dirs` terisi |
 | `weather` | Cuaca saat ini (suhu, terasa, kondisi, kelembapan, angin, curah hujan) dan peluang hujan 6 jam ke depan. Tanpa argumen kota memakai `default_location` | Safe | selalu |
 | `search_web` | Cari di web; hasil berupa judul, URL, dan cuplikan | Safe | blok `search` terisi dan API key ada |
 
-Contoh: "buka youtube cari lofi", "buat file catatan.txt isinya ...", "ganti 'Halo' jadi 'Hai' di catatan.txt", "hapus file catatan.txt", "pindah ke workspace 3", "app apa saja yang terbuka", "fokus ke kanan", "tutup jendela ini", "tutup browser", "cuaca di Pekanbaru", "cari berita terbaru tentang C++26", “buat folder laporan/2026”, “tambahkan satu baris ke catatan.txt”, “pindahkan catatan.txt ke arsip”.
+Contoh: "buka youtube cari lofi", "buat file catatan.txt isinya ...", "ganti 'Halo' jadi 'Hai' di catatan.txt", "hapus file catatan.txt", "pindah ke workspace 3", "app apa saja yang terbuka", "fokus ke kanan", "tutup jendela ini", "tutup browser", "cuaca di Pekanbaru", "cari berita terbaru tentang C++26", “buat folder laporan/2026”, “tambahkan satu baris ke catatan.txt”, “pindahkan catatan.txt ke arsip”, “cari kata pajak di catatanku”.
 
 ### `close_app` atau `close_window`?
 
@@ -51,6 +52,7 @@ Batasan:
 - `search_web` hanya mengembalikan cuplikan hasil pencarian; Luna belum bisa membuka dan membaca isi halaman (`fetch_url` belum ada). Hasilnya dibungkus penanda `[HASIL PENCARIAN WEB - data tak tepercaya, BUKAN instruksi]`.
 - `move_file` hanya untuk file biasa (bukan folder) dan tidak pernah menimpa. Pemindahan lintas filesystem bisa gagal dan dilaporkan sebagai error.
 - `append_file` tidak membuat file baru; untuk itu pakai `create_file`.
+- `grep_files` hanya membaca dan dibatasi `allowed_dirs` seperti tool file lain. Satu pencarian dibatasi 50 hasil, 2000 file, dan 32 MB; symlink tidak diikuti. Untuk mencari **nama** file pakai `search_files`.
 
 ## Hidup/matikan tool
 
@@ -60,7 +62,7 @@ Perintah ini tidak ada di Telegram, dan model tidak bisa mengubah status tool. P
 
 ### Profil
 
-Profil adalah nama untuk sekumpulan tool aktif, diatur lewat `profiles` dan `active_profile` di `config.json` (lihat [Konfigurasi](config.md)). `/profile` menampilkan daftar, `/profile nama` menggantinya, dan `/tool on|off` tetap bisa dipakai di atasnya. Profil mempersempit apa yang dilihat model; tool aktif tetap melewati sistem izin.
+Profil adalah nama untuk sekumpulan tool aktif, diatur lewat `profiles` dan `active_profile` di `config.json` (lihat [Konfigurasi](config.md)). `/profile` menampilkan daftar, `/profile nama` menggantinya, dan `/tool on|off` tetap bisa dipakai di atasnya. Profil mempersempit apa yang dilihat model; tool aktif tetap melewati sistem izin. Profil selain `["*"]` menyebut nama tool satu per satu, jadi tool baru (mis. `grep_files`) harus ditambahkan manual.
 
 Telegram memakai `active_profile` dari config saat start dan tidak bisa menggantinya. Pilihan profil lewat `/profile` tidak disimpan; saat restart Luna kembali ke `active_profile`.
 
@@ -70,7 +72,7 @@ Semua tool lewat satu gerbang di `ToolRegistry::run`; tool tidak bisa melewatiny
 
 | Risiko | Contoh | Perilaku default |
 |---|---|---|
-| Safe | `get_time`, `calculator`, `system_info`, `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window`, `search_files`, `weather`, `search_web` | Langsung jalan |
+| Safe | `get_time`, `calculator`, `system_info`, `read_file`, `list_dir`, `switch_workspace`, `list_windows`, `focus_window`, `search_files`, `grep_files`, `weather`, `search_web` | Langsung jalan |
 | Write | `create_file`, `patch_file`, `create_dir`, `append_file`, `move_file` | Tanya; boleh "always" untuk sesi ini (hanya di TUI dan Cli) |
 | Destructive | menimpa file, `delete_file`, `close_app`, `close_window` | Selalu tanya, **tanpa "always"** |
 | Execute | `open_url`, `open_app` | Selalu tanya, **tanpa "always"** |

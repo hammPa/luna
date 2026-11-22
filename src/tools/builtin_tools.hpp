@@ -10,6 +10,7 @@
 #include "tools/builtin/files/create_dir.hpp"
 #include "tools/builtin/files/append_file.hpp"
 #include "tools/builtin/files/move_file.hpp"
+#include "tools/builtin/files/grep_files.hpp"
 // system
 #include "tools/builtin/system/get_time.hpp"
 #include "tools/builtin/system/open_url.hpp"
