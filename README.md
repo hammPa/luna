@@ -2,7 +2,7 @@
 
 Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmuka TUI. Luna bisa ngobrol, mengingat hal tentangmu, menjalankan tool (file, aplikasi, URL, workspace dan jendela desktop, kirim file), dan bisa dikendalikan dari HP lewat bot Telegram, dengan sistem izin berlapis supaya aksi berbahaya tidak jalan sembarangan.
 
-**Versi saat ini: 1.5.6**
+**Versi saat ini: 1.5.7**
 
 [Riwayat versi](CHANGELOG.md)
 
@@ -25,6 +25,7 @@ Asisten AI pribadi berbasis C++17 yang berjalan di terminal Linux dengan antarmu
 - **Kalkulator dan info sistem**: `calculator` dan `system_info` (memori, CPU, disk, baterai, uptime), keduanya Safe dan tanpa program luar.
 - **Tool file lengkap**: selain baca, buat, ubah, dan hapus, kini ada `create_dir`, `append_file`, dan `move_file` (tidak menimpa), semuanya dibatasi workspace dan sistem izin.
 - **Retry rate limit**: request yang kena rate limit (429) dicoba ulang otomatis (maks 2 kali, tunggu sampai 20 detik). Di TUI dan CLI ada indikator "coba ulang N/2 dalam X dtk", dan Esc / Ctrl+C tetap bisa membatalkan. Byte UTF-8 rusak tidak lagi menggagalkan giliran.
+- **Aktivitas tool di layar**: selama tool berjalan, baris `luna` menampilkan "menjalankan nama_tool...". Setelah selesai, satu baris `info` mencatat hasilnya (`✓ nama · N ms`, `✗ nama · gagal`, atau `✗ nama · ditolak`) di TUI dan CLI.
 
 ## Prasyarat
 
@@ -120,8 +121,9 @@ Argumen pertama adalah path config (default `config.json`). Argumen kedua opsion
 - [x] `calculator` dan `system_info`
 - [x] `create_dir`, `append_file`, `move_file`
 - [x] Retry otomatis rate limit (429) dengan indikator, tahan UTF-8 rusak
+- [x] TUI dan CLI: aktivitas tool di layar
 - [ ] Tool tambahan: kontrol volume dan media
-- [ ] TUI: aktivitas tool di layar, seleksi mouse otomatis.
+- [ ] TUI: seleksi mouse otomatis.
 - [ ] Streaming balasan
 - [ ] `open_url` dengan pilihan browser dan jendela baru
 - [ ] Tes otomatis (target CMake) dan CI

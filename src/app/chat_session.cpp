@@ -23,6 +23,15 @@ int estimate_context(const std::vector<Message>& history, const nlohmann::json& 
     return ctx_fmt::estimate_tokens(bytes);
 }
 
+// Status dari teks hasil tool. Penolakan gerbang izin: lihat permission.cpp.
+std::string classify_tool_result(const std::string& r) {
+    if (r.rfind("Error", 0) == 0) return "gagal";
+    if (r.rfind("User menolak", 0) == 0 || r.rfind("Ditolak oleh kebijakan", 0) == 0) {
+        return "ditolak";
+    }
+    return "ok";
+}
+
 }  // namespace
 
 ChatSession::ChatSession(const Config& cfg, LLMBackend& backend, Memory& memory,
@@ -133,7 +142,18 @@ std::string ChatSession::send(const std::string& user_text) {
             // Jalankan tiap tool (gerbang permission ada di registry).
             for (const auto& c : r.toolcalls) {
                 if (cancel_) throw CancelledError();
-                Message t = make_msg("tool", tools_.run(c.name, c.arguments));
+                if (notice_) notice_("menjalankan " + c.name + "...");
+                
+                const auto t_tool = std::chrono::steady_clock::now();
+                std::string result = tools_.run(c.name, c.arguments);
+                
+                const auto tool_ms = static_cast<long long>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        std::chrono::steady_clock::now() - t_tool).count());
+                if (notice_) notice_("");
+                if (tool_cb_) tool_cb_({c.name, classify_tool_result(result), tool_ms});
+
+                Message t = make_msg("tool", std::move(result));
                 t.tool_call_id = c.id;
                 t.name = c.name;
                 history_.push_back(std::move(t));
@@ -177,4 +197,8 @@ void ChatSession::set_backend(LLMBackend& backend) {
 void ChatSession::set_notice(std::function<void(const std::string&)> f) {
     notice_ = std::move(f);
     backend_->set_notice_callback(notice_);
+}
+
+void ChatSession::set_tool_event(ToolEventFn f) {
+    tool_cb_ = std::move(f);
 }

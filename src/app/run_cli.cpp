@@ -38,6 +38,9 @@ int run_cli(const LLMBackend& backend, const Config& cfg,
     session.set_notice([](const std::string& m) {
         if (!m.empty()) std::cout << "\x1b[2m" << m << "\x1b[0m\n" << std::flush;
     });
+    session.set_tool_event([](const ToolEvent& e) {
+        std::cout << "\x1b[2m" << format_tool_event(e) << "\x1b[0m\n" << std::flush;
+    });
     struct sigaction sa {};
     sa.sa_handler = on_sigint;
     sigemptyset(&sa.sa_mask);

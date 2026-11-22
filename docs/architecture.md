@@ -58,3 +58,12 @@ Backend tidak boleh mengenal UI, jadi kabar status lewat callback:
 - Callback di TUI merujuk state lokal `run_tui`, jadi dilepas (`set_notice(nullptr)`) sebelum `run_tui` selesai.
 
 Selain itu, `dump()` JSON yang dikirim ke LLM memakai `error_handler_t::replace`, sehingga byte UTF-8 rusak menjadi karakter pengganti dan tidak melempar `type_error.316`.
+
+## Jejak aktivitas tool
+
+`ChatSession` melaporkan tiap pemanggilan tool lewat dua callback yang dipasang UI, supaya `tools/` tetap tidak mengenal `tui/`:
+
+- `set_notice` (yang sama dengan kabar retry): dipanggil dengan "menjalankan nama..." sebelum `ToolRegistry::run` dan dengan string kosong sesudahnya. `busy_row` menampilkannya.
+- `set_tool_event`: dipanggil sekali per tool dengan `ToolEvent{name, status, ms}`. `format_tool_event` (di `chat_session.hpp`) membuat teksnya. TUI menaruhnya sebagai baris `info`, CLI mencetak baris redup, Telegram tidak memasang callback.
+
+Status diturunkan dari teks hasil tool karena `ToolRegistry::run` hanya mengembalikan teks: awalan `Error` = `gagal`; awalan `User menolak` atau `Ditolak oleh kebijakan` (teks dari `PermissionGate`) = `ditolak`; selain itu `ok`. Kalau teks penolakan di `permission.cpp` diubah, `classify_tool_result` di `chat_session.cpp` harus ikut diubah. Seperti kabar retry, `set_tool_event` tidak ikut `set_backend` karena tidak bergantung pada backend, dan harus dilepas (`nullptr`) sebelum `run_tui` selesai karena merujuk state lokal.

@@ -9,6 +9,21 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <functional>
+
+// Satu pemanggilan tool, untuk ditampilkan UI. status: "ok" | "gagal" | "ditolak".
+// ms termasuk waktu menunggu persetujuan izin.
+struct ToolEvent {
+    std::string name;
+    std::string status;
+    long long ms;
+};
+using ToolEventFn = std::function<void(const ToolEvent&)>;
+
+inline std::string format_tool_event(const ToolEvent& e) {
+    if (e.status == "ok") return "✓ " + e.name + " · " + std::to_string(e.ms) + " ms";
+    return "✗ " + e.name + " · " + e.status;
+}
 
 // Satu percakapan: memegang history, menyambungkan LLMBackend dan Memory.
 // Menyimpan referensi, jadi objek yang dirujuk harus hidup lebih lama.
@@ -49,6 +64,8 @@ public:
     // Kabar status dari backend (mis. menunggu retry). Dipanggil dari thread kerja.
     // Lewat set_backend tetap terpasang. Kosongkan dengan std::function kosong.
     void set_notice(std::function<void(const std::string&)> f);
+    // Kabar tiap tool selesai. Dipanggil dari thread kerja. Tidak ikut set_backend.
+    void set_tool_event(ToolEventFn f);
 
 private:
     void trim_history();
@@ -67,4 +84,5 @@ private:
     std::atomic<bool> ctx_estimated_{false};
     std::atomic<bool> cancel_{false};
     std::function<void(const std::string&)> notice_;
+    ToolEventFn tool_cb_;
 };

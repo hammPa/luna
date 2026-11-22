@@ -27,7 +27,7 @@
 - Belum ada tes otomatis.
 - Log belum mencatat permintaan izin dan percobaan kode TOTP.
 - TUI belum punya streaming, dan salin otomatis lewat seleksi mouse (hanya `/copy`).
-- Aktivitas tool (nama, durasi) belum tampil di layar chat; lihat `luna.log`.
+- Jejak tool di layar hanya memuat nama, status, dan durasi, tanpa argumen (mis. path file); detail lain ada di `luna.log`.
 - Menutup TUI saat panggilan LLM berjalan menunggu panggilan itu selesai.
 - `max_context` hanya untuk tampilan; riwayat dipangkas berdasarkan jumlah pesan.
 - Status hidup/mati tool tidak disimpan ke config; saat restart semua tool kembali aktif.

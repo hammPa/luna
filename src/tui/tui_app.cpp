@@ -38,6 +38,10 @@ int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
 
     prompter.set_notifier(refresh);
     session.set_notice([&](const std::string& m) { st.set_notice(m); refresh(); });
+    session.set_tool_event([&](const ToolEvent& e) {
+        st.add("info", format_tool_event(e));
+        refresh();
+    });
     st.add("info", "Riwayat dimuat: " + std::to_string(session.history_size()) +
                    " pesan. Perintah: /remember kunci=nilai, /facts, /clear, exit");
 
@@ -81,6 +85,7 @@ int run_tui(ChatSession& session, Memory& memory, TuiPrompter& prompter,
     if (st.busy) std::cout << "Menunggu permintaan yang sedang berjalan selesai...\n";
     if (worker.joinable()) worker.join();
     session.set_notice(nullptr);      // callback merujuk st lokal
+    session.set_tool_event(nullptr);  // callback merujuk st lokal
     ticker.join();
     prompter.set_notifier(nullptr);
 

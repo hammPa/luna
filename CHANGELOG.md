@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.7
+Aktivitas tool tampil di layar: teks "menjalankan ..." saat berjalan dan satu baris hasil (berhasil, gagal, ditolak, dengan durasi) setelahnya, di TUI dan CLI.
+
 ## 1.5.6
 Coba ulang otomatis saat kena rate limit (429) dengan indikator di layar, dan byte UTF-8 rusak tidak lagi menggagalkan giliran.
 

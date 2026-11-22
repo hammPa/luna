@@ -34,6 +34,7 @@ Hal yang perlu diketahui:
 - Jawaban muncul sekaligus (belum ada streaming). Balasan Luna dirender dengan markdown: tebal, miring, kode inline, daftar, judul, kutipan, tautan, dan blok kode berlabel bahasa. Tabel dan format bersarang belum didukung.
 - `Esc` saat Luna bekerja membatalkan giliran (jeda sekitar 1 detik). Tool yang sedang berjalan selesai dulu.
 - Jika provider kena rate limit (429), Luna mencoba ulang otomatis (maks 2 kali, tunggu sampai 20 detik). Selama menunggu, baris `luna` di bawah pesan berubah dari "berpikir..." menjadi "kena rate limit, coba ulang 1/2 dalam N dtk...", dan `Esc` tetap membatalkan giliran. Jika server meminta tunggu lebih dari 20 detik, giliran gagal dengan pesan error.
+- Setiap pemanggilan tool meninggalkan satu baris `info` di chat: `✓ list_dir · 1 ms` (berhasil), `✗ read_file · gagal`, atau `✗ create_file · ditolak` (izin ditolak atau diblokir kebijakan). Selama tool berjalan, baris `luna` menampilkan "menjalankan list_dir...". Durasi termasuk waktu menunggu persetujuan izin. Argumen tool (mis. path file) tidak ditampilkan.
 - Selama TUI aktif, `stderr` dialihkan ke `/dev/null` agar peringatan tidak merusak layar. Isi `log_file` untuk tetap melihat WARN dan ERROR.
 - Teks dari model dibersihkan dari karakter kontrol sebelum ditampilkan.
 - Menutup TUI saat Luna masih menunggu LLM akan menunggu permintaan itu selesai (maksimal `timeout_sec`).
