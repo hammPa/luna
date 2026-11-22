@@ -45,3 +45,16 @@ Daftar tool di system prompt dan schema untuk model dibuat otomatis dari registr
 ## Menambah backend LLM
 
 Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.cpp`. `main` tidak berubah. Provider dan model baru cukup didaftarkan di `providers` pada `config.json`; `/model` memakai daftar itu lewat antarmuka `ModelSwitcher` (diimplementasikan `App` di `main.cpp`), jadi `commands.cpp` tidak mengenal `backend_factory`.
+
+## Retry rate limit dan kabar status
+
+Retry hidup di `OpenAIBackend::chat`, jadi berlaku sama di TUI, CLI, dan Telegram. Respons 429, atau 503 dari router yang membungkus 429, diulang maksimal 2 kali. Waktu tunggu dibaca dari pesan server ("try again in Ns"); tanpa petunjuk dipakai 2 detik lalu 4 detik. Tunggu lebih dari 20 detik berarti menyerah dan error biasa dilempar. Tunggu dipecah per 100 ms dan memeriksa cancel flag, sehingga Esc atau Ctrl+C membatalkannya dengan `CancelledError`. Request yang kena 429 ditolak sebelum diproses, jadi mengirim ulang tidak punya efek samping dan tidak perlu konfirmasi.
+
+Backend tidak boleh mengenal UI, jadi kabar status lewat callback:
+
+- `LLMBackend::set_notice_callback(f)`: backend memanggil `f("kena rate limit, coba ulang 1/2 dalam N dtk...")` sebelum menunggu, dan `f("")` setelah selesai. Bawaannya kosong (backend lain boleh mengabaikan).
+- `ChatSession::set_notice(f)`: UI memasang `f` di session, bukan langsung ke backend. Session menyimpan salinannya dan meneruskannya ke backend aktif. Saat `/model` mengganti backend, `set_backend` memasang salinan itu ke backend baru, sama seperti cancel flag. Tanpa salinan, callback hilang setelah ganti model.
+- Callback dipanggil dari thread kerja. TUI menyimpan teksnya di `TuiState` (dengan mutex sendiri) lalu meminta gambar ulang; CLI mencetak satu baris redup; Telegram tidak memasang callback.
+- Callback di TUI merujuk state lokal `run_tui`, jadi dilepas (`set_notice(nullptr)`) sebelum `run_tui` selesai.
+
+Selain itu, `dump()` JSON yang dikirim ke LLM memakai `error_handler_t::replace`, sehingga byte UTF-8 rusak menjadi karakter pengganti dan tidak melempar `type_error.316`.

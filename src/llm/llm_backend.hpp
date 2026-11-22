@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include <functional>
 
 class LLMBackend {
 public:
@@ -18,4 +19,7 @@ public:
     
     // Bendera batal; bila menyala, permintaan yang sedang menunggu diputus.
     virtual void set_cancel_flag(const std::atomic<bool>*) {}
+
+    // Kabar status untuk ditampilkan UI (mis. "menunggu rate limit"). String kosong = selesai.
+    virtual void set_notice_callback(std::function<void(const std::string&)>) {}
 };

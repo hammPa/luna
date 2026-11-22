@@ -17,6 +17,8 @@
 
 Luna melakukan long polling ke Telegram (`getUpdates`), jadi tidak butuh IP publik. Komputer harus menyala dan Luna harus berjalan.
 
+Jika provider LLM kena rate limit (429), Luna mencoba ulang otomatis (maks 2 kali, tunggu sampai 20 detik per percobaan), sama seperti di TUI dan CLI. Di Telegram tidak ada indikator untuk itu, dan menunggunya belum bisa dibatalkan karena tombol batal belum ada.
+
 ### Reverse proxy
 
 Jika jaringan tempat Luna berjalan tidak bisa menjangkau `api.telegram.org` (beberapa hosting memblokirnya), isi `telegram_api_base_url` dengan URL proxy milikmu sendiri. Aturan:

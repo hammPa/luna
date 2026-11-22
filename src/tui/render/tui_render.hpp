@@ -31,7 +31,7 @@ ftxui::Element header_bar(const std::string& status, int used, int max,
                           bool estimated, bool busy);
 
 // Baris "luna berpikir..." dengan spinner.
-ftxui::Element busy_row(int frame);
+ftxui::Element busy_row(int frame, const std::string& notice);
 
 // Kotak input berbingkai. input_el = hasil input_box->Render().
 ftxui::Element input_bar(ftxui::Element input_el, bool busy);

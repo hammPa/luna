@@ -17,6 +17,8 @@ struct TuiState {
     std::atomic<bool> quit{false};
     std::atomic<int> frame{0};
     std::atomic<bool> cancelling{false};   // Esc sudah ditekan untuk giliran ini
+    std::mutex notice_mu;          // melindungi notice (mutex sendiri agar tidak bentrok dengan mu)
+    std::string notice;            // mis. "kena rate limit, coba ulang 1/2 dalam 14 dtk..."
 
     // Hanya disentuh thread UI (event dan render): tanpa mutex.
     std::string input;
@@ -34,5 +36,15 @@ struct TuiState {
     void add(const std::string& role, const std::string& msg) {
         std::lock_guard<std::mutex> lk(mu);
         lines.push_back({role, tui_text::sanitize(msg)});
+    }
+
+    void set_notice(const std::string& s) {
+        std::lock_guard<std::mutex> lk(notice_mu);
+        notice = tui_text::sanitize(s);
+    }
+
+    std::string get_notice() {
+        std::lock_guard<std::mutex> lk(notice_mu);
+        return notice;
     }
 };

@@ -168,7 +168,13 @@ void ChatSession::clear() {
 void ChatSession::set_backend(LLMBackend& backend) {
     backend_ = &backend;
     backend_->set_cancel_flag(&cancel_);
+    backend_->set_notice_callback(notice_);
     ctx_used_ = -1;             // angka konteks milik model lama tidak berlaku
     ctx_estimated_ = false;
     trim_history();             // history_limit model baru bisa lebih kecil
+}
+
+void ChatSession::set_notice(std::function<void(const std::string&)> f) {
+    notice_ = std::move(f);
+    backend_->set_notice_callback(notice_);
 }

@@ -151,12 +151,13 @@ Element header_bar(const std::string& status, int used, int max, bool estimated,
     });
 }
 
-Element busy_row(int frame) {
+Element busy_row(int frame, const std::string& notice) {
     return hbox({
         text(" luna ") | bold | color(theme::dark) | bgcolor(theme::luna_c),
         text(" "),
         spinner(2, static_cast<size_t>(frame)) | color(theme::accent),
-        text(" berpikir...") | color(theme::muted),
+        text(notice.empty() ? " berpikir..." : " " + notice) |
+            color(notice.empty() ? theme::muted : theme::warn_c),
     });
 }
 

@@ -46,6 +46,9 @@ public:
     // Batalkan giliran yang sedang berjalan (aman dipanggil dari thread lain).
     void cancel() { cancel_ = true; }
     std::atomic<bool>* cancel_flag() { return &cancel_; }
+    // Kabar status dari backend (mis. menunggu retry). Dipanggil dari thread kerja.
+    // Lewat set_backend tetap terpasang. Kosongkan dengan std::function kosong.
+    void set_notice(std::function<void(const std::string&)> f);
 
 private:
     void trim_history();
@@ -63,4 +66,5 @@ private:
     std::atomic<int> ctx_used_{-1};        // dibaca thread UI, ditulis thread kerja
     std::atomic<bool> ctx_estimated_{false};
     std::atomic<bool> cancel_{false};
+    std::function<void(const std::string&)> notice_;
 };

@@ -32,7 +32,7 @@ Element render_screen(TuiState& st, ChatSession& session, TuiPrompter& prompter,
     const int view_h = std::max(4, term.dimy - 7);   // kira-kira tinggi area chat
     st.scroll = std::clamp(st.scroll, 0, std::max(0, content - view_h));
 
-    if (st.busy) rows.push_back(busy_row(st.frame.load()));
+    if (st.busy) rows.push_back(busy_row(st.frame.load(), st.get_notice()));
 
     // yframe cenderung menaruh baris fokus di tengah; geser target ke atas
     // setengah tinggi tampilan agar BAWAH tampilan = baris (content-1-scroll).

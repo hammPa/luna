@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.6
+Coba ulang otomatis saat kena rate limit (429) dengan indikator di layar, dan byte UTF-8 rusak tidak lagi menggagalkan giliran.
+
 ## 1.5.5
 Tool file baru: `create_dir`, `append_file` (menambah di akhir file yang sudah ada), dan `move_file` (pindah atau ganti nama, tidak pernah menimpa)
 

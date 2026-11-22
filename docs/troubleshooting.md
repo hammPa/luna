@@ -43,3 +43,5 @@ nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
 | `Gagal start: model '...' wajib punya 'max_context'` | Isi `max_context` dan `history_limit` di entri `models` |
 | `Gagal ganti model: Environment variable ... belum di-set` | API key provider tujuan belum di-export di terminal ini; model lama tetap aktif |
 | `/model` tidak dikenali di Telegram | Memang tidak tersedia di Telegram; ganti `active` di config lalu restart |
+| Layar menampilkan "kena rate limit, coba ulang N/2 dalam X dtk..." | Provider membatasi token per menit (mis. Groq 8000 TPM). Luna menunggu lalu mengirim ulang otomatis; Esc membatalkan. Normal, tidak perlu tindakan |
+| `HTTP 503 ... [429] ... Please try again in 29s` (log: `rate limit, tunggu ... melebihi batas, menyerah`) | Server meminta tunggu lebih dari 20 detik, jadi Luna tidak mengulang. Tunggu sebentar lalu kirim lagi. Untuk menghindarinya, perkecil request: `/profile nama` atau `/tool off nama` supaya lebih sedikit tool dikirim, dan `/clear` bila riwayat panjang |

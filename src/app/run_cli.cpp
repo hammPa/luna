@@ -35,6 +35,9 @@ int run_cli(const LLMBackend& backend, const Config& cfg,
               << "\nPerintah: /remember kunci=nilai, /facts, exit\n";
 
     g_cancel = session.cancel_flag();
+    session.set_notice([](const std::string& m) {
+        if (!m.empty()) std::cout << "\x1b[2m" << m << "\x1b[0m\n" << std::flush;
+    });
     struct sigaction sa {};
     sa.sa_handler = on_sigint;
     sigemptyset(&sa.sa_mask);
