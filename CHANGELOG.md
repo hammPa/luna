@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.8
+Refactor: OpenAIBackend pindah ke llm/openai/ dan dipecah (openai_http, openai_format), run_cli pindah ke cli/. Tanpa perubahan perilaku.
+
 ## 1.5.7
 Aktivitas tool tampil di layar: teks "menjalankan ..." saat berjalan dan satu baris hasil (berhasil, gagal, ditolak, dengan durasi) setelahnya, di TUI dan CLI.
 

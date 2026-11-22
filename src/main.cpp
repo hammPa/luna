@@ -1,6 +1,6 @@
 #include "app/chat_session.hpp"
-#include "app/run_cli.hpp"
 #include "app/model_switcher.hpp"
+#include "cli/run_cli.hpp"
 #include "llm/backend_factory.hpp"
 #include "memory/memory.hpp"
 #include "utils/config.hpp"

@@ -9,8 +9,10 @@ luna/
 ├── third_party/            nlohmann/json.hpp, SQLiteCpp/
 └── src/
     ├── main.cpp            pemilihan mode, wiring objek
-    ├── app/                ChatSession (loop chat + tool), commands, run_cli, register_tools, model_switcher
-    ├── llm/                tipe, interface LLMBackend, OpenAIBackend, factory
+    ├── app/                ChatSession (loop chat + tool), commands, register_tools, model_switcher
+    ├── cli/                run_cli (mode --cli)
+    ├── llm/                tipe, interface LLMBackend, factory
+    │   └── openai/       openai_backend, openai_http (error HTTP, retry), openai_format (konversi pesan dan tool)
     ├── memory/             Memory (SQLite: messages, facts)
     ├── search/             SearchProvider, TavilyProvider, search_factory
     ├── tools/              Tool, ToolRegistry, PermissionGate, PathGuard, Prompter, FileSink, FileBlocklist
@@ -31,7 +33,7 @@ luna/
         └── config/       reject_old, apps, profiles, telegram, providers, search, misc (header per bagian load_config)
 ```
 
-Aturan dependensi: `llm/` tidak mengenal `memory/`, `tools/`, atau `telegram/`. Format khusus provider hanya ada di `openai_backend.cpp`. Detail provider tidak boleh bocor ke `main.cpp`.
+Aturan dependensi: `llm/` tidak mengenal `memory/`, `tools/`, atau `telegram/`. Format khusus provider hanya ada di folder provider-nya (`llm/openai/`). Detail provider tidak boleh bocor ke `main.cpp`.
 `search/` tidak mengenal `tools/`, `memory/`, atau `telegram/`. Format khusus provider pencarian hanya ada di file provider-nya.
 
 ## Menambah tool baru
@@ -44,7 +46,7 @@ Daftar tool di system prompt dan schema untuk model dibuat otomatis dari registr
 
 ## Menambah backend LLM
 
-Buat class turunan `LLMBackend`, lalu tambahkan satu cabang di `backend_factory.cpp`. `main` tidak berubah. Provider dan model baru cukup didaftarkan di `providers` pada `config.json`; `/model` memakai daftar itu lewat antarmuka `ModelSwitcher` (diimplementasikan `App` di `main.cpp`), jadi `commands.cpp` tidak mengenal `backend_factory`.
+Buat folder `llm/<nama>/` berisi class turunan `LLMBackend` dan file bantunya (ikuti pola `llm/openai/`: backend, bantu HTTP, konversi format), lalu tambahkan satu cabang di `backend_factory.cpp`. `main` tidak berubah. Provider dan model baru cukup didaftarkan di `providers` pada `config.json`; `/model` memakai daftar itu lewat antarmuka `ModelSwitcher` (diimplementasikan `App` di `main.cpp`), jadi `commands.cpp` tidak mengenal `backend_factory`.
 
 ## Retry rate limit dan kabar status
 

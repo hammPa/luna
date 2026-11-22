@@ -1,6 +1,6 @@
 #include "llm/backend_factory.hpp"
 
-#include "llm/openai_backend.hpp"
+#include "llm/openai/openai_backend.hpp"
 
 #include <cstdlib>
 #include <stdexcept>

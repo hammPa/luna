@@ -23,7 +23,7 @@ add_executable(luna
     src/utils/http.cpp
     src/utils/config.cpp
     src/utils/string_utils.cpp
-    src/llm/openai_backend.cpp
+    src/llm/openai/openai_backend.cpp
     src/llm/backend_factory.cpp
     src/memory/memory.cpp
     src/app/commands.cpp
@@ -46,7 +46,7 @@ add_executable(luna
     src/tui/core/tui_view.cpp
     src/tui/core/tui_events.cpp
     src/tui/render/tui_markdown.cpp
-    src/app/run_cli
+    src/cli/run_cli
     src/app/register_tools.cpp
     src/tui/render/tui_utf8.cpp
     src/tui/render/tui_wrap.cpp

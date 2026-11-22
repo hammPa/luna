@@ -1,4 +1,4 @@
-#include "app/run_cli.hpp"
+#include "cli/run_cli.hpp"
 
 #include "app/commands.hpp"
 #include "utils/cancel.hpp"
