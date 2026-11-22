@@ -1,7 +1,5 @@
 # Log
 
-## Log
-
 Jika `log_file` diisi, Luna menulis satu baris per kejadian:
 
 ```

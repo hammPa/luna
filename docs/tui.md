@@ -1,10 +1,8 @@
 # TUI
 
-## TUI
-
 Layar terdiri dari header (backend, model, jumlah tool), area chat yang otomatis mengikuti pesan terbaru, kotak input, dan bilah petunjuk.
 
-### Kontrol
+## Kontrol
 
 | Tombol | Fungsi |
 |---|---|
@@ -39,14 +37,14 @@ Hal yang perlu diketahui:
 - Teks dari model dibersihkan dari karakter kontrol sebelum ditampilkan.
 - Menutup TUI saat Luna masih menunggu LLM akan menunggu permintaan itu selesai (maksimal `timeout_sec`).
 
-### Perintah di chat
+## Perintah di chat
 
 | Perintah | Fungsi |
 |---|---|
 | `/remember kunci=nilai` | Simpan fakta permanen, mis. `/remember nama=Budi` |
 | `/facts` | Tampilkan semua fakta |
 | `/clear` | Hapus riwayat percakapan (RAM dan database). **Fakta tidak ikut terhapus** |
-| `/start`, `/help` | Bantuan singkat (Telegram) |
+| `/start`, `/help` | Bantuan singkat; daftarnya menyesuaikan antarmuka (di Telegram tanpa `/tool`, `/profile`, `/model`) |
 | `/ctx` | tampilkan ukuran konteks yang terpakai |
 | `/tools` | Daftar semua tool dan statusnya (`[on ]`/`[off]`) |
 | `/tool on\|off nama` | Hidupkan atau matikan satu tool. Tool nonaktif tidak dikirim ke model. Hanya berlaku selama program jalan; saat restart semua tool kembali aktif |

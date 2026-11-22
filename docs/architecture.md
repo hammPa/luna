@@ -24,7 +24,6 @@ luna/
     │       └── web/      weather, search_web
     ├── telegram/           client, prompter, loop, file_sink, telegram_format
     ├── auth/               TotpVerifier
-    ├── tui/                tui_app, tui_view, tui_events, tui_state, tui_render, tui_text,
     ├── tui/                tui_app, tui_prompter
     │   ├── core/         tui_state, tui_events, tui_view
     │   ├── render/       tui_render, tui_markdown, tui_wrap, tui_utf8, tui_text, theme

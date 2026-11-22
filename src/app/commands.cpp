@@ -26,7 +26,7 @@ void cmd_remember(const std::string& arg, Memory& memory, std::ostream& out) {
         memory.set_fact(key, value);
         out << "Tersimpan: " << key << " = " << value << "\n\n";
     } catch (const std::exception& e) {
-        std::cerr << "Gagal menyimpan fakta: " << e.what() << '\n';
+        out << "Gagal menyimpan fakta: " << e.what() << '\n';
     }
 }
 
@@ -42,7 +42,7 @@ void cmd_facts(Memory& memory, std::ostream& out) {
         }
         out << '\n';
     } catch (const std::exception& e) {
-        std::cerr << "Gagal membaca fakta: " << e.what() << '\n';
+        out << "Gagal membaca fakta: " << e.what() << '\n';
     }
 }
 
@@ -51,7 +51,7 @@ void cmd_clear(ChatSession& session, std::ostream& out) {
         session.clear();
         out << "Riwayat dihapus. Fakta tetap tersimpan.\n\n";
     } catch (const std::exception& e) {
-        std::cerr << "Gagal menghapus riwayat: " << e.what() << '\n';
+        out << "Gagal menghapus riwayat: " << e.what() << '\n';
     }
 }
 
@@ -169,8 +169,11 @@ bool handle_command(const std::string& line, Memory& memory, ChatSession& sessio
         return true;
     }
     if (line == "/start" || line == "/help") {
-        out << "Halo, saya Luna. Kirim pesan biasa untuk ngobrol atau menjalankan tool.\n"
-            "Perintah: /remember kunci=nilai, /facts, /clear\n";
+                out << "Halo, saya Luna. Kirim pesan biasa untuk ngobrol atau menjalankan tool.\n"
+            "Perintah: /remember kunci=nilai, /facts, /clear, /ctx\n";
+            if (tools) out << "Tool: /tools, /tool on|off nama, /profile [nama]\n";
+            if (models) out << "Model: /model [nomor]\n";
+            if (tools || models) out << "Keluar: exit\n";
         return true;
     }
     if (line == "/clear") {

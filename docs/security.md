@@ -26,12 +26,11 @@
 - Cuaca hanya dalam satuan metrik (°C, km/j).
 - Belum ada tes otomatis.
 - Log belum mencatat permintaan izin dan percobaan kode TOTP.
-- TUI belum punya streaming, dan salin otomatis lewat seleksi mouse (hanya `/copy`).
+- TUI belum punya streaming, dan salin otomatis lewat seleksi mouse (hanya `/copy`, yang hanya ada di TUI).
 - Jejak tool di layar hanya memuat nama, status, dan durasi, tanpa argumen (mis. path file); detail lain ada di `luna.log`.
 - Menutup TUI saat panggilan LLM berjalan menunggu panggilan itu selesai.
 - `max_context` hanya untuk tampilan; riwayat dipangkas berdasarkan jumlah pesan.
 - Status hidup/mati tool tidak disimpan ke config; saat restart semua tool kembali aktif.
 - Pembatalan giliran (Esc/Ctrl+C) belum tersedia di Telegram.
-- `/copy` hanya ada di TUI.
 - Blok kode di TUI tidak dibungkus; baris yang lebih lebar dari layar terpotong.
 - Ganti model lewat `/model` tidak disimpan ke config dan tidak tersedia di Telegram.

@@ -9,7 +9,6 @@
 #include "tui/input/input_history.hpp"
 #include "tui/input/copy_command.hpp"
 #include "utils/cancel.hpp"
-#include "utils/markdown.hpp"
 
 #include <algorithm>
 #include <exception>

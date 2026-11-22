@@ -1,5 +1,8 @@
 # Riwayat versi
 
+## 1.5.9
+Perapian: pesan error perintah terlihat di TUI, /help menyesuaikan antarmuka, include tidak terpakai dihapus, dan cacat docs diperbaiki.
+
 ## 1.5.8
 Refactor: OpenAIBackend pindah ke llm/openai/ dan dipecah (openai_http, openai_format), run_cli pindah ke cli/. Tanpa perubahan perilaku.
 

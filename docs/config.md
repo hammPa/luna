@@ -1,8 +1,6 @@
 # Konfigurasi
 
-## Konfigurasi
-
-### Environment variable (rahasia, jangan di-commit)
+## Environment variable (rahasia, jangan di-commit)
 
 | Variable | Fungsi |
 |---|---|
@@ -13,7 +11,7 @@
 
 Tambahkan ke `~/.zshrc` atau `~/.bashrc`, lalu `source`.
 
-### `config.json`
+## `config.json`
 
 ```json
 {

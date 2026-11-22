@@ -1,7 +1,5 @@
 # Troubleshooting
 
-## Troubleshooting
-
 | Gejala | Penyebab umum |
 |---|---|
 | `Gagal start: ... belum di-set` | Env var belum di-export di terminal ini |
@@ -35,8 +33,7 @@
 | Karakter aneh atau kotak-kotak | Terminal atau font tidak mendukung UTF-8 |
 | `Argumen tidak dikenal` | Argumen kedua bukan `--cli` atau `--telegram` |
 | Angka konteks berawalan `~` | Provider tidak mengirim `usage`, jadi angkanya perkiraan |
-| Persen konteks tidak masuk akal | `max_context` di config harus sama dengan konteks
-nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
+| Persen konteks tidak masuk akal | `max_context` di config harus sama dengan konteks nyata model. Di Ollama, cek `ollama ps` atau `num_ctx` |
 | `/copy` tidak menempel | Terminal belum mengizinkan OSC 52 (di kitty cek `clipboard_control`; di tmux butuh `set-clipboard on`) |
 | `Gagal start: field '...' tingkat atas tidak dipakai lagi` | Config format lama; pindahkan ke `providers` dan `active` (lihat `config.example.json`) |
 | `Gagal start: model '...' tidak terdaftar` | Model di `active` belum ada di `providers.<nama>.models` |
